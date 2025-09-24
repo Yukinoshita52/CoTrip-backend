@@ -26,3 +26,4 @@ replay_pid*
 # 忽略 Maven 构建输出目录
 # 忽略所有 target/ 目录（无论在根目录还是子目录）
 **/target/
+.idea/
