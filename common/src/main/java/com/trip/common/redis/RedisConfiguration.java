@@ -1,4 +1,4 @@
-package com.yukino.trip.common.redis;
+package com.trip.common.redis;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

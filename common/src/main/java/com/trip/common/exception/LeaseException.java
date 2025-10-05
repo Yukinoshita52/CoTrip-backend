@@ -1,6 +1,6 @@
-package com.yukino.trip.common.exception;
+package com.trip.common.exception;
 
-import com.yukino.trip.common.result.ResultCodeEnum;
+import com.trip.common.result.ResultCodeEnum;
 import lombok.Data;
 
 /**

@@ -1,4 +1,4 @@
-package com.yukino.trip.common.sms;
+package com.trip.common.sms;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

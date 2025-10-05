@@ -1,4 +1,4 @@
-package com.yukino.trip.common.result;
+package com.trip.common.result;
 
 import lombok.Getter;
 

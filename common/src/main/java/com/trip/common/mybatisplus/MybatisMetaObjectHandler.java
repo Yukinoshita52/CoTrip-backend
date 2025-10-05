@@ -1,4 +1,4 @@
-package com.yukino.trip.common.mybatisplus;
+package com.trip.common.mybatisplus;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;

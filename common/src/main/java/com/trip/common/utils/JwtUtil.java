@@ -1,10 +1,9 @@
-package com.yukino.trip.common.utils;
+package com.trip.common.utils;
 
-import com.yukino.trip.common.exception.LeaseException;
-import com.yukino.trip.common.result.ResultCodeEnum;
+import com.trip.common.exception.LeaseException;
+import com.trip.common.result.ResultCodeEnum;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 
 import javax.crypto.SecretKey;
 import java.util.Date;

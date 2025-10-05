@@ -1,4 +1,4 @@
-package com.yukino.trip.common.constant;
+package com.trip.common.constant;
 
 /**
  * ClassName: RedisConstant

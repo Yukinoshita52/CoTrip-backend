@@ -1,4 +1,4 @@
-package com.yukino.trip.common.utils;
+package com.trip.common.utils;
 
 import java.util.Random;
 

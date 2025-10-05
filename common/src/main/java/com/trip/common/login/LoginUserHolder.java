@@ -1,4 +1,4 @@
-package com.yukino.trip.common.login;
+package com.trip.common.login;
 
 public class LoginUserHolder {
     public static ThreadLocal<LoginUser> threadLocal = new ThreadLocal<>();

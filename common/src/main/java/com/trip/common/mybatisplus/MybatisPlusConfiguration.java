@@ -1,4 +1,4 @@
-package com.yukino.trip.common.mybatisplus;
+package com.trip.common.mybatisplus;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * @Version 1.0
  */
 @Configuration
-@MapperScan("com.yukino.lease.web.*.mapper")//这里虽然爆红，但是没出错……（IDEA疑似过于智能）
+@MapperScan("com.trip.web.*.mapper")//这里虽然爆红，但是没出错……（IDEA疑似过于智能）
 public class MybatisPlusConfiguration {
 
     @Bean

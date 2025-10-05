@@ -1,4 +1,4 @@
-package com.yukino.trip.common.minio;
+package com.trip.common.minio;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

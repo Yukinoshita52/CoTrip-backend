@@ -1,7 +1,6 @@
-package com.yukino.trip.common.exception;
+package com.trip.common.exception;
 
-import com.yukino.trip.common.result.Result;
-import org.springframework.stereotype.Controller;
+import com.trip.common.result.Result;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
