@@ -13,6 +13,8 @@ import lombok.Data;
 @TableName(value ="trip")
 @Data
 public class Trip {
+    @TableId
+    private Long id;
     /**
      * 行程名称
      */

@@ -2,6 +2,8 @@ package com.trip.web.mapper;
 
 import com.trip.model.entity.GraphInfo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
 * @author 26423
@@ -11,6 +13,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface GraphInfoMapper extends BaseMapper<GraphInfo> {
 
+    @Select("SELECT url FROM graph_info WHERE id = #{id} AND is_deleted = 0")
+    String selectUrlById(@Param("id") Long id);
 }
 
 

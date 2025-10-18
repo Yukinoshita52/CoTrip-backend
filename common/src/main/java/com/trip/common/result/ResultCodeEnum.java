@@ -38,7 +38,10 @@ public enum ResultCodeEnum {
     APP_LOGIN_CODE_EXPIRED(505, "验证码已过期"),
     APP_LOGIN_CODE_ERROR(506, "验证码错误"),
     APP_ACCOUNT_DISABLED_ERROR(507, "该用户已被禁用"),
-
+    PASSWORD_WEAK(508, "密码强度不足"),
+    PASSWORD_NOT_MATCH(509, "两次输入的密码不一致"),
+    APP_PHONE_EXIST_ERROR(510, "手机号已存在"),
+    APP_ORIGINAL_PASSWORD_ERROR(511, "原密码错误"),
 
     TOKEN_EXPIRED(601, "token过期"),
     TOKEN_INVALID(602, "token非法");
