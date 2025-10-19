@@ -7,6 +7,7 @@ import com.trip.model.dto.UserNicknameUpdateDTO;
 import com.trip.model.dto.UserPasswordDTO;
 import com.trip.model.dto.UserPasswordUpdateDTO;
 import com.trip.model.dto.UserPhoneUpdateDTO;
+import com.trip.model.vo.ImageUrlVO;
 import com.trip.model.vo.UserVO;
 import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -42,12 +43,12 @@ public class UserController {
         return Result.ok();
     }
 
-    @PostMapping("/avatar")
-    public Result<UserVO> uploadAvatar(@RequestPart("file") MultipartFile file) {
+    @PutMapping("/avatar")
+    public Result<ImageUrlVO> uploadAvatar(@RequestPart("file") MultipartFile file) {
         var loginUser = LoginUserHolder.getLoginUser();
         String url = userService.updateAvatar(loginUser.getUserId(), file);
-        UserVO vo = new UserVO();
-        vo.setAvatarUrl(url);
+        ImageUrlVO vo = new ImageUrlVO();
+        vo.setUrl(url);
         return Result.ok(vo);
     }
 

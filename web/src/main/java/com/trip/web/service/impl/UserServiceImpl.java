@@ -55,7 +55,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isStrongPassword(newPassword)) {
             throw new LeaseException(ResultCodeEnum.PASSWORD_WEAK);
         }
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         this.updateById(user);
     }
 
@@ -76,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new LeaseException(ResultCodeEnum.ADMIN_ACCOUNT_NOT_EXIST_ERROR);
         }
         String avatarUrl = graphInfoService.uploadImage(avatarFile, 1, userId);
-        user.setAvatarId(userId); // Assuming avatarId is the userId for simplicity
+        user.setAvatarId(userId);
         this.updateById(user);
         return avatarUrl;
     }

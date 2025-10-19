@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.common.utils.JwtUtil;
-import com.trip.common.utils.PasswordUtil;
 import com.trip.model.dto.AuthLoginDTO;
 import com.trip.model.dto.AuthRegisterDTO;
 import com.trip.model.entity.User;
 import com.trip.model.vo.AuthLoginVO;
 import com.trip.model.vo.AuthRegisterVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -60,7 +58,7 @@ public class AuthService {
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setAvatarId(0L); // 设置默认头像
+        user.setAvatarId(1L); // 设置默认头像
         user.setNickname("未命名用户"); // 设置默认昵称
         userService.save(user);
 

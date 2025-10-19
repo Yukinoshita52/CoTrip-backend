@@ -13,8 +13,6 @@ import org.apache.ibatis.annotations.Select;
 */
 public interface GraphInfoMapper extends BaseMapper<GraphInfo> {
 
-    @Select("SELECT url FROM graph_info WHERE id = #{id} AND is_deleted = 0")
-    String selectUrlById(@Param("id") Long id);
 }
 
 

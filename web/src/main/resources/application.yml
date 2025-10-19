@@ -38,10 +38,10 @@ springdoc:
   default-flat-param-object: true
 
 minio:
-  endpoint: http://localhost:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
-  bucket: cotrip
+  endpoint: http://121.40.23.40:9000
+  accessKey: minio_QpXMXJ
+  secretKey: minio_xeK6T6
+  bucketName: cotrip
 
 #aliyun:
 #  sms:
