@@ -94,6 +94,7 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
                             .build()
             );
         } catch (Exception e) {
+            log.error("获取 MinIO 预签名 URL 失败");
             throw new LeaseException(ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getCode(), ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getMessage());
         }
     }

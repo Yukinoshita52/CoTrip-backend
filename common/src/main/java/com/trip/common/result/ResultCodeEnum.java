@@ -17,7 +17,7 @@ public enum ResultCodeEnum {
     REPEAT_SUBMIT(206, "重复提交"),
     DELETE_ERROR(207, "请先删除子集"),
     IMAGE_UPLOAD_ERROR(208, "图片上传失败"),
-    IMAGE_DOWNLOAD_ERROR(209, "获取MinIO临时URL失败"),
+    IMAGE_DOWNLOAD_ERROR(209, "图片加载失败"),
 
     ADMIN_ACCOUNT_EXIST_ERROR(301, "账号已存在"),
     ADMIN_CAPTCHA_CODE_ERROR(302, "验证码错误"),

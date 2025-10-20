@@ -4,18 +4,16 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.trip.common.result.Result;
 import com.trip.model.entity.Place;
 import com.trip.web.service.PlaceService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/places")
+@RequiredArgsConstructor
 public class PlaceController {
 
     private final PlaceService placeService;
-
-    public PlaceController(PlaceService placeService) {
-        this.placeService = placeService;
-    }
 
     @GetMapping
     public Result<Page<Place>> listPlaces(
