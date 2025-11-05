@@ -1,12 +1,15 @@
 package com.trip.web.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.trip.common.result.Result;
+import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.entity.Place;
 import com.trip.web.service.PlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/places")
@@ -23,10 +26,15 @@ public class PlaceController {
         return Result.ok(placePage);
     }
 
-    @PostMapping
-    public Result<Void> createPlace(@RequestBody @Validated Place place) {
-        placeService.save(place);
-        return Result.ok();
+    // 地点输入提示
+    @GetMapping("/suggestion")
+    public Mono<Result<JsonNode>> getSuggestions(@RequestParam String query) {
+        // 防止空查询
+        if (query == null || query.trim().isEmpty()) {
+            return Mono.just(Result.fail(ResultCodeEnum.FAIL.getCode(), "请输入查询关键字"));
+        }
+
+        return placeService.getSuggestions(query.trim());
     }
 
     @PutMapping("/{id}")

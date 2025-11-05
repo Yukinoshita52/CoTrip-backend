@@ -7,6 +7,7 @@
     <resultMap id="BaseResultMap" type="com.trip.model.entity.Trip">
             <id property="id" column="id" />
             <result property="name" column="name" />
+            <result property="region" column="region" />
             <result property="startDate" column="start_date" />
             <result property="endDate" column="end_date" />
             <result property="description" column="description" />

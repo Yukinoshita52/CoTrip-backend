@@ -34,4 +34,9 @@ public class Trip {
      * 行程描述
      */
     private String description;
+
+    /**
+     * 城市
+     */
+    private String region;
 }

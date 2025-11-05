@@ -5,19 +5,23 @@
 <mapper namespace="com.trip.web.mapper.PlaceMapper">
 
     <resultMap id="BaseResultMap" type="com.trip.model.entity.Place">
-            <id property="id" column="id" />
-            <result property="tripId" column="trip_id" />
-            <result property="name" column="name" />
-            <result property="typeId" column="type_id" />
-            <result property="day" column="day" />
-            <result property="notes" column="notes" />
-            <result property="createTime" column="create_time" />
-            <result property="updateTime" column="update_time" />
-            <result property="isDeleted" column="is_deleted" />
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="typeId" column="type_id" />
+        <result property="uid" column="uid" />
+        <result property="lat" column="lat" />
+        <result property="lng" column="lng" />
+        <result property="address" column="address" />
+        <result property="telephone" column="telephone" />
+        <result property="detailInfo" column="detail_info" />
+        <result property="createTime" column="created_time" />
+        <result property="updateTime" column="updated_time" />
+        <result property="isDeleted" column="is_deleted" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,trip_id,name,type_id,day,notes,
-        create_time,update_time,is_deleted
+        id, name, type_id, uid, lat, lng, address, telephone, detail_info,
+        created_time, updated_time, is_deleted
     </sql>
+
 </mapper>

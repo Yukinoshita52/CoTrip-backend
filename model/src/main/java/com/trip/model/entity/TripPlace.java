@@ -22,4 +22,9 @@ public class TripPlace extends BaseEntity{
      * 地点ID
      */
     private Long placeId;
+
+    /**
+     * 第几天
+     */
+    private Integer day;
 }
