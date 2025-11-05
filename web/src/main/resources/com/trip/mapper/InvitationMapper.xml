@@ -6,6 +6,7 @@
 
     <resultMap id="BaseResultMap" type="com.trip.model.entity.Invitation">
             <id property="id" column="id" />
+            <result property="inviterId" column="inviter_id" />
             <result property="invitee" column="invitee" />
             <result property="status" column="status" />
             <result property="createTime" column="create_time" />
@@ -14,6 +15,6 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,invitee,status,create_time,update_time,is_deleted
+        id,inviter_id,invitee,status,create_time,update_time,is_deleted
     </sql>
 </mapper>
