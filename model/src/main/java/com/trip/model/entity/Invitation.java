@@ -1,10 +1,8 @@
 package com.trip.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.util.Date;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 邀请信息表
@@ -12,7 +10,13 @@ import lombok.Data;
  */
 @TableName(value ="invitation")
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class Invitation extends BaseEntity {
+    /**
+     * 邀请人ID
+     */
+    private Long inviterId;
+
     /**
      * 被邀请人手机号
      */
