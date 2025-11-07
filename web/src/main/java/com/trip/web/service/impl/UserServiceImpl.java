@@ -3,13 +3,11 @@ package com.trip.web.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
-import com.trip.common.utils.PasswordUtil;
 import com.trip.model.entity.User;
 import com.trip.model.vo.UserVO;
 import com.trip.web.service.UserService;
 import com.trip.web.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -75,10 +73,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (user == null) {
             throw new LeaseException(ResultCodeEnum.ADMIN_ACCOUNT_NOT_EXIST_ERROR);
         }
-        String avatarUrl = graphInfoService.uploadImage(avatarFile, 1, userId);
-        user.setAvatarId(userId);
+
+        // 删除旧头像
+        Long oldGraphId = user.getAvatarId();
+        if (oldGraphId != null) {
+            try {
+                graphInfoService.deleteImageById(oldGraphId);
+            } catch (Exception e) {
+                log.warn("删除旧头像失败");
+            }
+        }
+
+        // 上传图片并生成 graph 记录
+        Long graphId = graphInfoService.uploadImage(avatarFile, 1, userId);
+
+        // 更新用户的 avatarId
+        user.setAvatarId(graphId);
         this.updateById(user);
-        return avatarUrl;
+
+        // 返回可访问链接
+        return graphInfoService.getImageUrlById(graphId);
     }
 
     @Override

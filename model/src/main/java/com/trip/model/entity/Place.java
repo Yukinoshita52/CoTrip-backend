@@ -1,9 +1,10 @@
 package com.trip.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.trip.model.dto.DetailInfo;
 import lombok.Data;
-
-import java.time.LocalDateTime;
 
 /**
  * 地点信息表
@@ -20,8 +21,7 @@ public class Place {
     private Float lng;
     private String address;
     private String telephone;
-    private String detailInfo;
-    private LocalDateTime createdTime;
-    private LocalDateTime updatedTime;
-    private Integer isDeleted;
+
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private DetailInfo detailInfo;
 }

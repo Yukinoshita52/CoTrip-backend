@@ -1,11 +1,21 @@
 package com.trip.web.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trip.common.exception.LeaseException;
+import com.trip.model.dto.DetailInfo;
+import com.trip.model.dto.PlaceCreateDTO;
 import com.trip.model.entity.Place;
+import com.trip.model.entity.TripPlace;
+import com.trip.model.vo.PlaceCreateVO;
 import com.trip.web.mapper.TripMapper;
+import com.trip.web.mapper.TripPlaceMapper;
 import com.trip.web.service.PlaceService;
 import com.trip.web.mapper.PlaceMapper;
+import com.trip.web.service.PlaceTypeService;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import com.trip.common.result.Result;
@@ -26,7 +36,9 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
     implements PlaceService{
 
     private final BaiduMapService baiduMapService;
+    private final PlaceTypeService placeTypeService;
     private final TripMapper tripMapper;
+    private final TripPlaceMapper tripPlaceMapper;
 
     @Override
     public Result<List<SuggestionDTO>> getSuggestions(String query, Long tripId) {
@@ -34,8 +46,7 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
 
         try {
             // 调用百度接口
-            JsonNode resultArray = baiduMapService.getSuggestions(query, region)
-                    .block();
+            JsonNode resultArray = baiduMapService.getSuggestions(query, region).block();
 
             List<SuggestionDTO> suggestions = new ArrayList<>();
             if (resultArray != null && resultArray.isArray()) {
@@ -50,8 +61,82 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
 
             return Result.ok(suggestions);
         } catch (Exception e) {
-            return Result.fail(ResultCodeEnum.FAIL.getCode(), e.getMessage());
+            return Result.fail(ResultCodeEnum.FAIL.getCode(), "地点搜索失败");
         }
     }
 
+    @Override
+    public Result<PlaceCreateVO> addPlace(Long tripId, PlaceCreateDTO placeCreateDTO) {
+        JsonNode result = baiduMapService.getPlaceDetail(placeCreateDTO.getUid()).block();
+        if (result == null || result.isMissingNode()) {
+            log.warn("未获取到地点详情");
+            return Result.fail(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
+        }
+
+        // 提取字段
+        String uid = result.path("uid").asText();
+        String name = result.path("name").asText();
+        Integer typeId = placeTypeService.determineTypeId(name);
+        Float lat = (float) result.path("location").path("lat").asDouble();
+        Float lng = (float) result.path("location").path("lng").asDouble();
+        String address = result.path("address").asText("");
+        String telephone = result.path("telephone").asText("");
+        
+        DetailInfo detailInfo;
+        try {
+            detailInfo = new ObjectMapper().treeToValue(result.path("detail_info"), DetailInfo.class);
+        } catch (JsonProcessingException e) {
+            log.warn("地点详情反序列化失败: " + e.getMessage());
+            return Result.fail(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
+        }
+
+        // 检查是否已存在
+        Place place = this.lambdaQuery().eq(Place::getUid, uid).one();
+        if (place == null) {
+            place = new Place();
+            place.setUid(uid);
+            place.setName(name);
+            place.setTypeId(typeId);
+            place.setLat(lat);
+            place.setLng(lng);
+            place.setAddress(address);
+            place.setTelephone(telephone);
+            place.setDetailInfo(detailInfo);
+            this.save(place); // 插入数据库
+        }
+        Long placeId = place.getId();
+
+        // 更新 trip_place
+        TripPlace existingTp = tripPlaceMapper.selectOne(
+                new QueryWrapper<TripPlace>()
+                        .eq("trip_id", tripId)
+                        .eq("place_id", placeId)
+        );
+
+        // trip 中已经存在该 place
+        if (existingTp != null) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "行程已包含此地点");
+        }
+
+        // 插入新记录
+        TripPlace tp = new TripPlace();
+        tp.setTripId(tripId);
+        tp.setPlaceId(placeId);
+        tp.setDay(placeCreateDTO.getDay());
+        tripPlaceMapper.insert(tp);
+
+        PlaceCreateVO vo = new PlaceCreateVO();
+        vo.setId(place.getId());
+        vo.setName(place.getName());
+        vo.setType(placeTypeService.getTypeNameById(place.getTypeId()));
+        vo.setUid(place.getUid());
+        vo.setLat(place.getLat());
+        vo.setLng(place.getLng());
+        vo.setAddress(place.getAddress());
+        vo.setTelephone(place.getTelephone());
+        vo.setDetailInfo(place.getDetailInfo());
+        vo.setDay(placeCreateDTO.getDay());
+
+        return Result.ok(vo);
+    }
 }

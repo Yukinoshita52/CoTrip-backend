@@ -13,15 +13,14 @@
         <result property="lng" column="lng" />
         <result property="address" column="address" />
         <result property="telephone" column="telephone" />
-        <result property="detailInfo" column="detail_info" />
-        <result property="createTime" column="created_time" />
-        <result property="updateTime" column="updated_time" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
         <result property="isDeleted" column="is_deleted" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, name, type_id, uid, lat, lng, address, telephone, detail_info,
-        created_time, updated_time, is_deleted
+        id, name, type_id, uid, lat, lng, address, telephone,
+        create_time, update_time, is_deleted
     </sql>
 
 </mapper>

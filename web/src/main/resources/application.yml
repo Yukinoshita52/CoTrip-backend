@@ -43,6 +43,13 @@ minio:
   secretKey: minio_xeK6T6
   bucketName: cotrip
 
+baidu:
+  map:
+    ak: ${BAIDU_MAP_AK:}
+
+llm:
+  api-key: ${DASHSCOPE_API_KEY:}
+
 #aliyun:
 #  sms:
 #    access-key-id:

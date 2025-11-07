@@ -9,5 +9,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2025-10-05 23:38:16
 */
 public interface PlaceTypeService extends IService<PlaceType> {
-
+    Integer determineTypeId(String placeName);
+    String getTypeNameById(Integer typeId);
 }

@@ -32,7 +32,7 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
     private final MinioProperties properties;
 
     @Override
-    public String uploadImage(MultipartFile file, int itemType, Long itemId) {
+    public Long uploadImage(MultipartFile file, int itemType, Long itemId) {
         try {
             String original = file.getOriginalFilename();
             String ext = (original != null && original.contains(".")) ? original.substring(original.lastIndexOf('.')) : "";
@@ -63,14 +63,7 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
             gi.setUrl(objectName);
             this.save(gi);
 
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucket)
-                            .object(objectName)
-                            .expiry(3600) // 一小时有效
-                            .build()
-            );
+            return gi.getId();
         } catch (Exception e) {
             throw new LeaseException(ResultCodeEnum.IMAGE_UPLOAD_ERROR.getCode(), ResultCodeEnum.IMAGE_UPLOAD_ERROR.getMessage());
         }
@@ -96,6 +89,29 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
         } catch (Exception e) {
             log.error("获取 MinIO 预签名 URL 失败");
             throw new LeaseException(ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getCode(), ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getMessage());
+        }
+    }
+
+    public void deleteImageById(Long graphId) {
+        GraphInfo graph = this.getById(graphId);
+        if (graph == null) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "未找到对应的图片信息");
+        }
+
+        graph.setIsDeleted((byte) 1);
+        this.updateById(graph);
+
+        String bucket = StringUtils.hasText(properties.getBucketName()) ? properties.getBucketName() : "cotrip";
+        try {
+            // 删除 MinIO 对象
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(graph.getUrl())
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("删除 MinIO 对象失败");
         }
     }
 }
