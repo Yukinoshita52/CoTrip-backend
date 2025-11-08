@@ -2,6 +2,9 @@ package com.trip.web.service;
 
 import com.trip.model.entity.Trip;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.trip.model.vo.PlaceCreateVO;
+
+import java.util.List;
 
 /**
 * @author 26423
@@ -10,4 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface TripService extends IService<Trip> {
 
+    List<PlaceCreateVO> batchImportPlaces(Long tripId, String text);
 }

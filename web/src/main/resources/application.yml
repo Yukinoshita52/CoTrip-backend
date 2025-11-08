@@ -21,6 +21,7 @@ spring:
     redis:
       host: 121.40.23.40
       port: 6379
+      password: redis_wK8Ens
       database: 0
 
 #用于打印框架生成的sql语句，便于调试

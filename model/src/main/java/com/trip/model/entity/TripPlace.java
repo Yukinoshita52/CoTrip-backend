@@ -13,18 +13,11 @@ import lombok.Data;
 @TableName(value ="trip_place")
 @Data
 public class TripPlace extends BaseEntity{
-    /**
-     * 行程ID
-     */
+
     private Long tripId;
-
-    /**
-     * 地点ID
-     */
     private Long placeId;
-
-    /**
-     * 第几天
-     */
     private Integer day;
+    private Integer sequence;
+
+    private Byte isDeleted;
 }

@@ -10,4 +10,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface TripPlaceService extends IService<TripPlace> {
 
+    void deletePlace(Long tripId, Long placeId);
 }

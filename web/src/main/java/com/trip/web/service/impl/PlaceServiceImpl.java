@@ -11,14 +11,15 @@ import com.trip.model.dto.PlaceCreateDTO;
 import com.trip.model.entity.Place;
 import com.trip.model.entity.TripPlace;
 import com.trip.model.vo.PlaceCreateVO;
+import com.trip.model.vo.PlaceDetailVO;
 import com.trip.web.mapper.TripMapper;
 import com.trip.web.mapper.TripPlaceMapper;
 import com.trip.web.service.PlaceService;
 import com.trip.web.mapper.PlaceMapper;
 import com.trip.web.service.PlaceTypeService;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
-import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.web.service.BaiduMapService;
 import com.trip.model.dto.SuggestionDTO;
@@ -41,7 +42,12 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
     private final TripPlaceMapper tripPlaceMapper;
 
     @Override
-    public Result<List<SuggestionDTO>> getSuggestions(String query, Long tripId) {
+    @Cacheable(
+            value = "suggestions",
+            key = "#tripId + ':' + #query",      // 缓存 key
+            unless = "#result == null || #result.size() == 0"
+    )
+    public List<SuggestionDTO> getSuggestions(String query, Long tripId) {
         String region = tripMapper.selectById(tripId).getRegion();
 
         try {
@@ -59,18 +65,18 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
                 }
             }
 
-            return Result.ok(suggestions);
+            return suggestions;
         } catch (Exception e) {
-            return Result.fail(ResultCodeEnum.FAIL.getCode(), "地点搜索失败");
+            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "地点搜索失败");
         }
     }
 
     @Override
-    public Result<PlaceCreateVO> addPlace(Long tripId, PlaceCreateDTO placeCreateDTO) {
+    public PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO) {
         JsonNode result = baiduMapService.getPlaceDetail(placeCreateDTO.getUid()).block();
         if (result == null || result.isMissingNode()) {
             log.warn("未获取到地点详情");
-            return Result.fail(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
+            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
         }
 
         // 提取字段
@@ -87,7 +93,7 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
             detailInfo = new ObjectMapper().treeToValue(result.path("detail_info"), DetailInfo.class);
         } catch (JsonProcessingException e) {
             log.warn("地点详情反序列化失败: " + e.getMessage());
-            return Result.fail(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
+            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "添加地点失败");
         }
 
         // 检查是否已存在
@@ -129,14 +135,28 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
         vo.setId(place.getId());
         vo.setName(place.getName());
         vo.setType(placeTypeService.getTypeNameById(place.getTypeId()));
-        vo.setUid(place.getUid());
+        vo.setLat(place.getLat());
+        vo.setLng(place.getLng());
+
+        return vo;
+    }
+
+    public PlaceDetailVO getPlaceDetails(Long placeId){
+        Place place = this.getById(placeId);
+        if(place == null){
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "地点不存在");
+        }
+
+        PlaceDetailVO vo = new PlaceDetailVO();
+        vo.setId(place.getId());
+        vo.setName(place.getName());
+        vo.setType(placeTypeService.getTypeNameById(place.getTypeId()));
         vo.setLat(place.getLat());
         vo.setLng(place.getLng());
         vo.setAddress(place.getAddress());
         vo.setTelephone(place.getTelephone());
         vo.setDetailInfo(place.getDetailInfo());
-        vo.setDay(placeCreateDTO.getDay());
 
-        return Result.ok(vo);
+        return vo;
     }
 }
