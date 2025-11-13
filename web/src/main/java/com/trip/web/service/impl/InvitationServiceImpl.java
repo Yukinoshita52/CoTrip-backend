@@ -10,9 +10,9 @@ import com.trip.model.vo.InvitationVO;
 import com.trip.web.mapper.InvitationMapper;
 import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.InvitationService;
+import com.trip.web.service.TripUserService;
 import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,6 +30,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
     private final UserService userService;
     private final GraphInfoService graphInfoService;
+    private final TripUserService tripUserService;
 
     @Override
     public List<InvitationVO> getSentInvitations(Long inviterId) {
@@ -52,7 +53,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
     }
 
     @Override
-    public void createInvitation(Long inviterId, String invitee) {
+    public InvitationVO createInvitation(Long tripId, Long inviterId, String invitee) {
         // 验证邀请人是否存在
         User inviter = userService.getById(inviterId);
         if (inviter == null) {
@@ -73,6 +74,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
         // 检查是否已有待处理的邀请
         long count = this.count(new LambdaQueryWrapper<Invitation>()
+                .eq(Invitation::getTripId, tripId)
                 .eq(Invitation::getInviterId, inviterId)
                 .eq(Invitation::getInvitee, invitee)
                 .eq(Invitation::getStatus, 0));
@@ -82,12 +84,29 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
         // 创建邀请
         Invitation invitation = new Invitation();
+        invitation.setTripId(tripId);
         invitation.setInviterId(inviterId);
         invitation.setInvitee(invitee);
         invitation.setStatus(0); // 待接受
         this.save(invitation);
 
+        // 转换为VO并返回
+        InvitationVO vo = new InvitationVO();
+        vo.setInvitationId(invitation.getId());
+        vo.setTripId(invitation.getTripId());
+        vo.setInviterId(invitation.getInviterId());
+        vo.setInvitee(invitation.getInvitee());
+        vo.setStatus(invitation.getStatus());
+        vo.setSentTime(invitation.getCreateTime());
+        
+        // 设置邀请人信息
+        vo.setInviterNickname(inviter.getNickname());
+        vo.setInviterPhone(inviter.getPhone());
+        vo.setInviterAvatarUrl(graphInfoService.getImageUrlById(inviter.getAvatarId()));
+
         // TODO: 发送通知给被邀请人
+        
+        return vo;
     }
 
     @Override
@@ -111,7 +130,17 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
         invitation.setStatus(action); // 1-已接受，2-已拒绝
         this.updateById(invitation);
 
-        // TODO: 如果接受邀请，可以执行相关业务逻辑（如添加好友关系等）
+        // 如果接受邀请，将用户添加到行程中
+        if (action == 1) {
+            // 获取被邀请人的用户ID
+            User inviteeUser = userService.getOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getPhone, invitation.getInvitee()));
+            
+            if (inviteeUser != null) {
+                // 添加为行程参与者
+                tripUserService.addParticipant(invitation.getTripId(), inviteeUser.getId());
+            }
+        }
     }
 
     @Override
@@ -141,7 +170,12 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
     private List<InvitationVO> convertToVOList(List<Invitation> invitations) {
         return invitations.stream().map(invitation -> {
             InvitationVO vo = new InvitationVO();
-            BeanUtils.copyProperties(invitation, vo);
+            vo.setInvitationId(invitation.getId());
+            vo.setTripId(invitation.getTripId());
+            vo.setInviterId(invitation.getInviterId());
+            vo.setInvitee(invitation.getInvitee());
+            vo.setStatus(invitation.getStatus());
+            vo.setSentTime(invitation.getCreateTime());
 
             // 查询邀请人信息
             if (invitation.getInviterId() != null) {

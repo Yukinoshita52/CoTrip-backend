@@ -13,6 +13,11 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class Invitation extends BaseEntity {
     /**
+     * 行程ID
+     */
+    private Long tripId;
+
+    /**
      * 邀请人ID
      */
     private Long inviterId;

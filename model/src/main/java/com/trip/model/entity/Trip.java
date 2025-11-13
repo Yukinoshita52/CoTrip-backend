@@ -1,10 +1,9 @@
 package com.trip.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 行程表
@@ -12,9 +11,8 @@ import lombok.Data;
  */
 @TableName(value ="trip")
 @Data
-public class Trip {
-    @TableId
-    private Long id;
+@EqualsAndHashCode(callSuper = false)
+public class Trip extends BaseEntity {
     /**
      * 行程名称
      */

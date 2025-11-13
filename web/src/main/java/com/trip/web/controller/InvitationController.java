@@ -3,13 +3,10 @@ package com.trip.web.controller;
 import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
-import com.trip.model.dto.InvitationCreateDTO;
-import com.trip.model.dto.InvitationProcessDTO;
 import com.trip.model.vo.InvitationVO;
 import com.trip.web.service.InvitationService;
 import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +15,7 @@ import java.util.List;
  * 邀请控制器
  */
 @RestController
-@RequestMapping("/api/invitation")
+@RequestMapping("/api/invitations")
 @RequiredArgsConstructor
 public class InvitationController {
 
@@ -61,32 +58,32 @@ public class InvitationController {
     }
 
     /**
-     * 发出邀请
-     * @param dto 邀请信息
+     * 接受邀请
+     * @param invitationId 邀请ID
      * @return 结果
      */
-    @PostMapping
-    public Result<Void> createInvitation(@RequestBody @Validated InvitationCreateDTO dto) {
+    @PostMapping("/{invitationId}/accept")
+    public Result<Void> acceptInvitation(@PathVariable Long invitationId) {
         var loginUser = LoginUserHolder.getLoginUser();
         if (loginUser == null) {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
-        invitationService.createInvitation(loginUser.getUserId(), dto.getInvitee());
+        invitationService.processInvitation(invitationId, 1); // 1-接受
         return Result.ok();
     }
 
     /**
-     * 处理邀请（同意/拒绝）
-     * @param dto 处理信息
+     * 拒绝邀请
+     * @param invitationId 邀请ID
      * @return 结果
      */
-    @PostMapping("/process")
-    public Result<Void> processInvitation(@RequestBody @Validated InvitationProcessDTO dto) {
+    @PostMapping("/{invitationId}/reject")
+    public Result<Void> rejectInvitation(@PathVariable Long invitationId) {
         var loginUser = LoginUserHolder.getLoginUser();
         if (loginUser == null) {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
-        invitationService.processInvitation(dto.getInvitationId(), dto.getAction());
+        invitationService.processInvitation(invitationId, 2); // 2-拒绝
         return Result.ok();
     }
 

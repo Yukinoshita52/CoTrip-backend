@@ -1,11 +1,5 @@
 package com.trip.web.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.trip.common.result.Result;
-import com.trip.model.entity.PlaceType;
-import com.trip.web.service.PlaceTypeService;
-import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
