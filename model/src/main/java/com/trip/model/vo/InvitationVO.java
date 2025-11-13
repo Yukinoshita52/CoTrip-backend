@@ -12,7 +12,12 @@ public class InvitationVO {
     /**
      * 邀请ID
      */
-    private Long id;
+    private Long invitationId;
+
+    /**
+     * 行程ID
+     */
+    private Long tripId;
 
     /**
      * 邀请人ID
@@ -45,8 +50,8 @@ public class InvitationVO {
     private Integer status;
 
     /**
-     * 创建时间
+     * 发送时间
      */
-    private Date createTime;
+    private Date sentTime;
 }
 

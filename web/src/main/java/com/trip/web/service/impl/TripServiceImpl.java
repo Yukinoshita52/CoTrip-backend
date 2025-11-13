@@ -7,12 +7,16 @@ import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.dto.PlaceCreateDTO;
 import com.trip.model.dto.SuggestionDTO;
+import com.trip.model.dto.TripCreateDTO;
 import com.trip.model.entity.Trip;
 import com.trip.model.vo.PlaceCreateVO;
+import com.trip.model.vo.TripVO;
 import com.trip.web.config.LLMClient;
 import com.trip.web.mapper.TripMapper;
 import com.trip.web.service.TripService;
+import com.trip.web.service.TripUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,7 +36,32 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     private final LLMClient llmClient;
     private final PlaceServiceImpl placeService;
+    private final TripUserService tripUserService;
 
+    @Override
+    public TripVO createTrip(TripCreateDTO dto, Long creatorId) {
+        // 创建行程
+        Trip trip = new Trip();
+        BeanUtils.copyProperties(dto, trip);
+        this.save(trip);
+
+        // 将创建者添加到行程用户关联表
+        tripUserService.addCreator(trip.getId(), creatorId);
+
+        // 转换为VO返回
+        TripVO vo = new TripVO();
+        vo.setTripId(trip.getId());
+        vo.setName(trip.getName());
+        vo.setStartDate(trip.getStartDate());
+        vo.setEndDate(trip.getEndDate());
+        vo.setDescription(trip.getDescription());
+        vo.setRegion(trip.getRegion());
+        vo.setCreatedTime(trip.getCreateTime());
+
+        return vo;
+    }
+
+    @Override
     public List<PlaceCreateVO> batchImportPlaces(Long tripId, String text){
         // 调用 LLMClient 提取地点名列表
         String prompt = """

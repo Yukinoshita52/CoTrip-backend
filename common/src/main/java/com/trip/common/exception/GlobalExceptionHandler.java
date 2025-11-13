@@ -21,9 +21,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     @ResponseBody
-    public Result error(Exception e){
+    public Result<String> error(Exception e){
         e.printStackTrace();
-        return Result.fail();
+        System.err.println("捕获到异常: " + e.getClass().getName());
+        System.err.println("异常消息: " + e.getMessage());
+        // 返回错误信息而不是null
+        return Result.fail(201, e.getMessage() != null ? e.getMessage() : "操作失败");
     }
 
     @ExceptionHandler(LeaseException.class)

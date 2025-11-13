@@ -29,10 +29,12 @@ public interface InvitationService extends IService<Invitation> {
 
     /**
      * 发出邀请
+     * @param tripId 行程ID
      * @param inviterId 邀请人ID
      * @param invitee 被邀请人手机号
+     * @return 创建的邀请信息
      */
-    void createInvitation(Long inviterId, String invitee);
+    InvitationVO createInvitation(Long tripId, Long inviterId, String invitee);
 
     /**
      * 处理邀请（同意/拒绝）

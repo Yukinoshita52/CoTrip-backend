@@ -1,5 +1,8 @@
 package com.trip.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.util.Date;
 
@@ -7,10 +10,12 @@ import java.util.Date;
  * 公告实体类（对应announcement表）
  */
 @Data
+@TableName("announcement")
 public class Announcement {
     /**
      * 公告ID
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
