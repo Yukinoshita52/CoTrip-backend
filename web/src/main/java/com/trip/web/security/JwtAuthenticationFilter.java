@@ -1,6 +1,5 @@
 package com.trip.web.security;
 
-import com.trip.common.exception.LeaseException;
 import com.trip.common.login.LoginUser;
 import com.trip.common.login.LoginUserHolder;
 import com.trip.common.utils.JwtUtil;
@@ -24,33 +23,43 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            try {
-                Claims claims = JwtUtil.parseToken(token);
-                Long userId = claims.get("userId", Long.class);
-                String username = claims.get("username", String.class);
-
-                LoginUser loginUser = new LoginUser(userId, username);
-                LoginUserHolder.setLoginUser(loginUser);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (LeaseException e) {
-                request.setAttribute("jwt.error", e);
-            } catch (Exception e) {
-                request.setAttribute("jwt.error", e);
-            }
-        }
 
         try {
+            String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+            if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+
+                try {
+                    Claims claims = JwtUtil.parseToken(token);
+                    Long userId = claims.get("userId", Long.class);
+                    String username = claims.get("username", String.class);
+
+                    LoginUser loginUser = new LoginUser(userId, username);
+
+                    // 同时设置到SecurityContext和ThreadLocal中
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(loginUser, null, Collections.emptyList());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    
+                    // 设置到ThreadLocal，供Controller使用
+                    LoginUserHolder.setLoginUser(loginUser);
+
+                } catch (Exception e) {
+                    // 捕获所有JWT解析异常，并记录到request中
+                    System.err.println("JWT解析失败: " + e.getMessage());
+                    e.printStackTrace();
+                    request.setAttribute("jwt.error", e);
+                }
+            }
+
             filterChain.doFilter(request, response);
         } finally {
+            // 请求完成后清理ThreadLocal，防止内存泄漏
             LoginUserHolder.clear();
         }
     }

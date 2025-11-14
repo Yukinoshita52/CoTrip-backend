@@ -27,9 +27,15 @@ public class AuthService {
         User user = userService.getOne(new LambdaQueryWrapper<User>()
                 .eq(User::getUsername, dto.getIdentifier()).or()
                 .eq(User::getPhone, dto.getIdentifier()));
+
+        if (user != null && user.getIsDeleted() == 1) {
+            throw new LeaseException(ResultCodeEnum.ADMIN_ACCOUNT_DISABLED_ERROR);
+        }
+
         if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new LeaseException(ResultCodeEnum.ADMIN_ACCOUNT_ERROR);
         }
+
         String token = JwtUtil.createToken(user.getId(), user.getUsername());
         AuthLoginVO vo = new AuthLoginVO();
         vo.setUserId(user.getId());

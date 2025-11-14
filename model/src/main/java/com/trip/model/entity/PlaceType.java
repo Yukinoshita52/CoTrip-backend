@@ -12,6 +12,8 @@ import lombok.Data;
 @TableName(value ="place_type")
 @Data
 public class PlaceType extends BaseEntity {
+    private Long id;
+
     /**
      * 类型编码（英文，如 sight/hotel/restaurant/transport）
      */

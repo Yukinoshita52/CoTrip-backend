@@ -1,7 +1,13 @@
 package com.trip.web.service;
 
-import com.trip.model.entity.Place;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.trip.model.dto.PlaceCreateDTO;
+import com.trip.model.entity.Place;
+import com.trip.model.dto.SuggestionDTO;
+import com.trip.model.vo.PlaceCreateVO;
+import com.trip.model.vo.PlaceDetailVO;
+
+import java.util.List;
 
 /**
 * @author 26423
@@ -10,4 +16,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface PlaceService extends IService<Place> {
 
+    List<SuggestionDTO> getSuggestions(String query, Long tripId);
+    PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO);
+    PlaceDetailVO getPlaceDetails(Long placeId);
 }

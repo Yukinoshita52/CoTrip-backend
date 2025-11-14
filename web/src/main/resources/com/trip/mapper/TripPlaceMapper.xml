@@ -8,12 +8,14 @@
             <id property="id" column="id" />
             <result property="tripId" column="trip_id" />
             <result property="placeId" column="place_id" />
+            <result property="day" column="day" />
+            <result property="sequence" column="sequence" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
             <result property="isDeleted" column="is_deleted" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,trip_id,place_id,create_time,update_time,is_deleted
+        id,trip_id,place_id,day,sequence,create_time,update_time,is_deleted
     </sql>
 </mapper>

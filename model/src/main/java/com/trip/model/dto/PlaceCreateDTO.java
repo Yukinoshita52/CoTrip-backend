@@ -8,15 +8,10 @@ import lombok.Data;
 public class PlaceCreateDTO {
 
     @NotBlank
-    private String name;
-
-    @NotBlank
-    private String typeCode; // maps to place_type.code
+    private String uid;
 
     @NotNull
     private Integer day;
-
-    private String notes;
 }
 
 

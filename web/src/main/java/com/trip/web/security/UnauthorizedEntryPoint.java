@@ -18,12 +18,22 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        Result<Void> body = Result.build(null, ResultCodeEnum.ADMIN_LOGIN_AUTH);
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
+            throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+
+        // 检查是否有JWT解析错误
+        Object jwtError = request.getAttribute("jwt.error");
+        String errorMessage = ResultCodeEnum.APP_LOGIN_AUTH.getMessage();
+        
+        if (jwtError instanceof Exception) {
+            Exception e = (Exception) jwtError;
+            errorMessage = "认证失败: " + e.getMessage();
+        }
+
+        Result<String> body = Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), errorMessage);
         response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }
-
-

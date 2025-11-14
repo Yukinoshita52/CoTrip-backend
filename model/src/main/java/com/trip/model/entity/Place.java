@@ -1,6 +1,11 @@
 package com.trip.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.trip.model.dto.DetailInfo;
 import lombok.Data;
 
 /**
@@ -9,29 +14,17 @@ import lombok.Data;
  */
 @TableName(value ="place")
 @Data
-public class Place extends BaseEntity {
-    /**
-     * 关联行程ID
-     */
-    private Long tripId;
-
-    /**
-     * 地点名称
-     */
+public class Place {
+    @TableId(type = IdType.AUTO)
+    private Long id;
     private String name;
-
-    /**
-     * 地点类型ID，关联 place_type(id)
-     */
     private Integer typeId;
+    private String uid;
+    private Float lat;
+    private Float lng;
+    private String address;
+    private String telephone;
 
-    /**
-     * 第几天
-     */
-    private Integer day;
-
-    /**
-     * 备注
-     */
-    private String notes;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private DetailInfo detailInfo;
 }

@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 */
 public interface GraphInfoService extends IService<GraphInfo> {
 
-    String uploadImage(MultipartFile file, int itemType, Long itemId);
+    Long uploadImage(MultipartFile file, int itemType, Long itemId);
     String getImageUrlById(Long id);
+    void deleteImageById(Long oldGraphId);
 }

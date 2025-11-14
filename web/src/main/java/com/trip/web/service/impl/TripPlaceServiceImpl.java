@@ -1,5 +1,6 @@
 package com.trip.web.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.model.entity.TripPlace;
 import com.trip.web.service.TripPlaceService;
@@ -14,6 +15,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace>
     implements TripPlaceService{
+
+    @Override
+    public void deletePlace(Long tripId, Long placeId){
+        UpdateWrapper<TripPlace> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("trip_id", tripId)
+                .eq("place_id", placeId);
+
+        TripPlace tripPlace = new TripPlace();
+        tripPlace.setIsDeleted((byte) 1);
+        this.update(tripPlace, updateWrapper);
+    }
 
 }
 
