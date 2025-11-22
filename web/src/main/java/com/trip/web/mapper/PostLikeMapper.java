@@ -1,0 +1,22 @@
+package com.trip.web.mapper;
+
+import com.trip.model.entity.PostLike;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+* @author 26423
+* @description 针对表【post_like】的数据库操作Mapper
+* @createDate 2025-11-22 15:25:47
+* @Entity com.trip.model.entity.PostLike
+*/
+public interface PostLikeMapper extends BaseMapper<PostLike> {
+
+    Map<Long, Integer> countByPostIds(List<Long> postIds);
+}
+
+
+
+

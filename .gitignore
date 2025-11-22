@@ -29,3 +29,6 @@ replay_pid*
 .idea/
 **/application.yml
 /.vscode/settings.json
+.idea/
+**/application.yml
+/.vscode/settings.json
