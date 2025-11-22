@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.trip.model.entity.Post;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.trip.model.vo.FeedPageVO;
+import com.trip.model.vo.StatVO;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.lang.Nullable;
 
 /**
 * @author 26423
@@ -14,6 +17,14 @@ import com.trip.model.vo.FeedPageVO;
 */
 public interface PostMapper extends BaseMapper<Post> {
 
+    /**
+     * 通过postId获取这篇帖子的状态（点赞数、评论数、用户是否点赞【Nullable】）
+     * 用户是否点赞字段可能不会返回，取决于是否传入userId参数
+     * @param postId
+     * @param userId
+     * @return
+     */
+    StatVO getStatsByPostId(@Param("postId") Long postId, @Nullable @Param("userId") Long userId);
 }
 
 

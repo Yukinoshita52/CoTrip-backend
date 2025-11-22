@@ -1,5 +1,6 @@
 package com.trip.model.vo;
 
+import com.trip.model.entity.Trip;
 import lombok.Data;
 import com.trip.model.entity.User;
 
@@ -13,8 +14,8 @@ import java.util.List;
 public class PostDetailVO {
     private Long postId;
     private TripDetailVO trip;
-    private User author; // 用 entity
-    private FeedPageVO.FeedItemVO.Stats stats;
+    private AuthorVO author;
+    private StatVO stats;
     private Date createTime;
 
     @Data
@@ -25,23 +26,7 @@ public class PostDetailVO {
         private Date startDate;
         private Date endDate;
         private String description;
-        private List<TripDayVO> days;
+        private List<PlaceDayTypeVO> days;
         private List<String> images;
-
-        @Data
-        public static class TripDayVO {
-            private Integer day;
-            private List<PlaceInfo> places;
-        }
-
-        @Data
-        public static class PlaceInfo {
-            private Long placeId;
-            private String name;
-            private Double lat;
-            private Double lng;
-            private String address;
-            private String type;
-        }
     }
 }

@@ -14,9 +14,9 @@ import lombok.Data;
  */
 @TableName(value ="place")
 @Data
-public class Place {
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class Place extends BaseEntity {
+//    @TableId(type = IdType.AUTO)
+//    private Long id;
     private String name;
     private Integer typeId;
     private String uid;

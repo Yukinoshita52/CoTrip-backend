@@ -15,4 +15,25 @@
     <sql id="Base_Column_List">
         id,trip_id,create_time,update_time,is_deleted
     </sql>
+    <select id="getStatsByPostId" resultType="com.trip.model.vo.StatVO">
+        select
+        -- 1. 统计评论数 (注意过滤逻辑删除)
+        (select COUNT(*)
+        from  comment
+        where post_id = #{postId} and is_deleted = 0) as commentCount,
+
+        -- 2. 统计点赞数 (注意过滤逻辑删除)
+        (select COUNT(*)
+        from post_like
+        where post_id = #{postId} and is_deleted = 0) as likeCount
+
+        -- 3. 动态查询当前用户是否点赞 (仅当 userId 不为 null 时执行)
+        <if test="userId != null">
+            , (select COUNT(*)
+            from post_like
+            where post_id = #{postId}
+            and user_id = #{userId}
+            and is_deleted = 0) > 0 as liked
+        </if>
+    </select>
 </mapper>

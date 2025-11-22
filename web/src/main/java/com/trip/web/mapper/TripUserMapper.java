@@ -2,6 +2,8 @@ package com.trip.web.mapper;
 
 import com.trip.model.entity.TripUser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.trip.model.vo.AuthorVO;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * @author 26423
@@ -11,5 +13,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface TripUserMapper extends BaseMapper<TripUser> {
 
+    AuthorVO getAuthorByTripId(@Param("tripId") Long id);
 }
 

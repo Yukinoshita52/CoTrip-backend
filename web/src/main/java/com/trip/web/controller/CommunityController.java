@@ -35,7 +35,8 @@ public class CommunityController {
     // 2. 帖子详情
     @GetMapping("/post/{postId}")
     public Result<PostDetailVO> getPostDetail(@PathVariable Long postId) {
-        return null;
+        PostDetailVO vo = communityService.getPostDetail(postId);
+        return Result.ok(vo);
     }
 
     // 3. 发布帖子

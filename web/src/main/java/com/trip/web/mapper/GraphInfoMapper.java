@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 /**
 * @author 26423
 * @description 针对表【graph_info(图片信息表)】的数据库操作Mapper
@@ -13,6 +15,7 @@ import org.apache.ibatis.annotations.Select;
 */
 public interface GraphInfoMapper extends BaseMapper<GraphInfo> {
 
+    List<String> getTripImagesByTripId(@Param("tripId") Long tripId);
 }
 
 

@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.model.entity.*;
+import com.trip.model.vo.*;
 import com.trip.web.mapper.TripUserMapper;
 import com.trip.web.mapper.*;
-import com.trip.model.vo.FeedPageVO;
 import com.trip.web.service.CommunityService;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.web.PortMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,12 +32,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implements CommunityService {
 
+    @Resource
     private final TripMapper tripMapper;
+    @Resource
     private final TripUserMapper tripUserMapper;
+    @Resource
     private final UserMapper userMapper;
+    @Resource
     private final GraphInfoMapper graphInfoMapper;
+    @Resource
     private final CommentMapper commentMapper;
+    @Resource
     private final PostLikeMapper postLikeMapper;
+    @Resource
+    private final PlaceMapper placeMapper;
+    @Resource
+    private final PostMapper postMapper;
 
     /**
      * 1.首先对post表是分页查询数据的，查询到一系列的id as post_id。
@@ -154,10 +166,10 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             Trip trip = tripMap.get(tripId);
 
             Long ownerId = tripOwnerMap.get(tripId);
-            FeedPageVO.FeedItemVO.Author author = new FeedPageVO.FeedItemVO.Author();
+            AuthorVO author = new AuthorVO();
             User user = userMap.get(ownerId);
             author.setUserId(user.getId());
-            author.setNickName(user.getNickname());
+            author.setNickname(user.getNickname());
             author.setAvatar(avatarMap.get(ownerId));
 
             FeedPageVO.FeedItemVO vo = new FeedPageVO.FeedItemVO();
@@ -171,7 +183,7 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             vo.setCoverImages(coverMap.getOrDefault(tripId, Collections.emptyList()));
             vo.setAuthor(author);
 
-            FeedPageVO.FeedItemVO.Stats stats = new FeedPageVO.FeedItemVO.Stats();
+            StatVO stats = new StatVO();
             stats.setCommentCount(commentCountMap.getOrDefault(post.getId(), 0));
             stats.setLikeCount(likeCountMap.getOrDefault(post.getId(), 0));
             vo.setStats(stats);
@@ -188,6 +200,33 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         result.setList(list);
 
         return result;
+    }
+
+    @Override
+    public PostDetailVO getPostDetail(Long postId) {
+        //数据查询
+        Post post = postMapper.selectById(postId);
+        Trip trip = tripMapper.selectById(post.getTripId());//从trip中获取一些数据
+        List<PlaceDayTypeVO> days = placeMapper.getPlaceDayTypeByTripId(trip.getId());
+        List<String> images = graphInfoMapper.getTripImagesByTripId(trip.getId());
+        AuthorVO author = tripUserMapper.getAuthorByTripId(trip.getId());
+        StatVO stats = postMapper.getStatsByPostId(post.getId(),author.getUserId());
+
+        //数据封装
+        PostDetailVO vo = new PostDetailVO();
+        vo.setPostId(postId);
+        PostDetailVO.TripDetailVO tripDetailVO = new PostDetailVO.TripDetailVO();
+        tripDetailVO.setTripId(trip.getId());
+        tripDetailVO.setName(trip.getName());
+        tripDetailVO.setRegion(trip.getRegion());
+        tripDetailVO.setStartDate(trip.getStartDate());
+        tripDetailVO.setEndDate(trip.getEndDate());
+        tripDetailVO.setDescription(trip.getDescription());
+        tripDetailVO.setDays(days);
+        tripDetailVO.setImages(images);
+        vo.setStats(stats);
+
+        return vo;
     }
 }
 

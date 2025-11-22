@@ -23,4 +23,32 @@
         create_time, update_time, is_deleted
     </sql>
 
+    <resultMap id="PlaceDayTypeMap" type="com.trip.model.vo.PlaceDayTypeVO">
+        <result property="day" column="day"/>
+
+        <collection property="places" ofType="com.trip.model.vo.PlaceDayTypeVO$PlaceType">
+            <result property="placeId" column="placeId"/>
+            <result property="name"    column="name"/>
+            <result property="lat"     column="lat"/>
+            <result property="lng"     column="lng"/>
+            <result property="address" column="address"/>
+            <result property="type"    column="type"/>
+        </collection>
+    </resultMap>
+    <select id="getPlaceDayTypeByTripId" resultMap="PlaceDayTypeMap">
+        select trip_place.day as day,
+               place.id            as placeId,
+               place.name          as name,
+               place.lat           as lat,
+               place.lng           as lng,
+               place.address       as address,
+               place_type.code     as type
+        from trip_place
+            join place
+        on trip_place.place_id = place.id
+            and trip_place.trip_id = #{tripId}
+            join place_type on place.type_id = place_type.id
+        order by trip_place.day asc
+    </select>
+
 </mapper>

@@ -26,22 +26,9 @@ public class FeedPageVO {
         private Date endDate;
         private String description;
         private List<String> coverImages;
-        private Author author; // 直接用 User entity
-        private Stats stats;
+        private AuthorVO author; // 直接用 User entity
+        private StatVO stats;
         private Date createTime;
 
-        @Data
-        public static class Stats {
-            private Integer likeCount;
-            private Integer commentCount;
-            private Boolean liked; // 可选
-        }
-
-        @Data
-        public static class Author{
-            private Long userId;
-            private String nickName;
-            private String avatar;
-        }
     }
 }

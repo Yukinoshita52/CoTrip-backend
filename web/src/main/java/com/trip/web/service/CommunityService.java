@@ -3,6 +3,7 @@ package com.trip.web.service;
 import com.trip.model.entity.Post;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.trip.model.vo.FeedPageVO;
+import com.trip.model.vo.PostDetailVO;
 
 /**
  * ClassName: CommunityService
@@ -15,4 +16,6 @@ import com.trip.model.vo.FeedPageVO;
  */
 public interface CommunityService extends IService<Post> {
     FeedPageVO getFeed(Integer page, Integer size);
+
+    PostDetailVO getPostDetail(Long postId);
 }
