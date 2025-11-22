@@ -3,6 +3,7 @@ package com.trip.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.trip.model.dto.TripDTO;
 import com.trip.model.entity.*;
 import com.trip.model.vo.*;
 import com.trip.web.mapper.TripUserMapper;
@@ -228,5 +229,19 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
 
         return vo;
     }
+
+    @Override
+    public PostCreatedVO createPost(TripDTO dto) {
+        Post post = new Post();
+        post.setTripId(dto.getTripId());
+        postMapper.insert(post);
+
+        PostCreatedVO res = new PostCreatedVO();
+        res.setPostId(post.getId());
+        res.setCreateTime(post.getCreateTime());
+        res.setTripId(dto.getTripId());
+        return res;
+    }
+
 }
 

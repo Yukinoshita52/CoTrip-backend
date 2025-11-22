@@ -5,8 +5,10 @@ import com.trip.model.dto.CommentDTO;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.vo.*;
 import com.trip.web.service.CommunityService;
+import com.trip.web.service.PostService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -24,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 public class CommunityController {
     @Resource
     private CommunityService communityService;
+    @Autowired
+    private PostService postService;
 
     // 1. 内容流 Feed
     @GetMapping("/feed")
@@ -42,13 +46,15 @@ public class CommunityController {
     // 3. 发布帖子
     @PostMapping("/post")
     public Result<PostCreatedVO> createPost(@RequestBody TripDTO dto) {
-        return null;
+        PostCreatedVO vo = communityService.createPost(dto);
+        return Result.ok(vo);
     }
 
     // 4. 删除帖子
     @DeleteMapping("/post/{postId}")
     public Result<PostDeletedVO> deletePost(@PathVariable Long postId) {
-        return null;
+        postService.removeById(postId);
+        return Result.ok();
     }
 
     // 5.1 获取评论列表
