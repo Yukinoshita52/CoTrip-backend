@@ -1,9 +1,12 @@
 package com.trip.web.controller;
 
+import com.trip.common.login.LoginUser;
+import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
 import com.trip.model.dto.CommentDTO;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.vo.*;
+import com.trip.web.service.CommentService;
 import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostService;
 import jakarta.annotation.Resource;
@@ -28,6 +31,8 @@ public class CommunityController {
     private CommunityService communityService;
     @Autowired
     private PostService postService;
+    @Autowired
+    private CommentService commentService;
 
     // 1. 内容流 Feed
     @GetMapping("/feed")
@@ -60,13 +65,16 @@ public class CommunityController {
     // 5.1 获取评论列表
     @GetMapping("/post/{postId}/comments")
     public Result<CommentListVO> getComments(@PathVariable Long postId) {
-        return null;
+        CommentListVO res = commentService.getCommentsByPostId(postId);
+        return Result.ok(res);
     }
 
     // 5.2 新增评论
     @PostMapping("/comment")
     public Result<CommentCreatedVO> addComment(@RequestBody CommentDTO dto) {
-        return null;
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        CommentCreatedVO res = commentService.addComment(dto,loginUser.getUserId());
+        return Result.ok(res);
     }
 
     // 5.3 删除评论

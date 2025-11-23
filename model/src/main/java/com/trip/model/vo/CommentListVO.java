@@ -11,5 +11,5 @@ import java.util.List;
 @Data
 public class CommentListVO {
     private Long postId;
-    private List<Comment> comments; // 用 entity，子评论可在 Comment entity 中包含 children
+    private List<CommentVO> comments;
 }

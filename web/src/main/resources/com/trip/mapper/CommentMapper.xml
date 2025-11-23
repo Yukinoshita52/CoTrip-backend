@@ -32,4 +32,17 @@
         </foreach>
         GROUP BY post_id
     </select>
+
+    <select id="getCommentsByPostId" resultType="com.trip.model.vo.CommentVO">
+        select comment.id      as commentId,
+               comment.user_id as userId,
+               user.nickname   as nickname,
+               graph_info.url  as avatar,
+               comment.content as content,
+               comment.create_time,
+               comment.parent_id
+        from comment
+                 join graph_info on comment.user_id = graph_info.item_id and graph_info.item_type = 1
+                 join user on comment.user_id = "user".id
+    </select>
 </mapper>
