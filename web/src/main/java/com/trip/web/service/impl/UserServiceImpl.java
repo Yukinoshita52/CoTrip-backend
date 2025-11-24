@@ -76,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 删除旧头像
         Long oldGraphId = user.getAvatarId();
-        if (oldGraphId != null) {
+        if (oldGraphId != null && oldGraphId != 1L) {
             try {
                 graphInfoService.deleteImageById(oldGraphId);
             } catch (Exception e) {

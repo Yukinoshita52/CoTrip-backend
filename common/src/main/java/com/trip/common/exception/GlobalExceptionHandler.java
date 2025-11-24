@@ -1,11 +1,12 @@
 package com.trip.common.exception;
 
 import com.trip.common.result.Result;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * ClassName: GlobalExceptionHandler
@@ -19,20 +20,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(Exception.class)
-    @ResponseBody
-    public Result<String> error(Exception e){
-        e.printStackTrace();
-        System.err.println("捕获到异常: " + e.getClass().getName());
-        System.err.println("异常消息: " + e.getMessage());
-        // 返回错误信息而不是null
-        return Result.fail(201, e.getMessage() != null ? e.getMessage() : "操作失败");
-    }
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /**
+     * 业务异常（可以返回给前端）
+     */
     @ExceptionHandler(LeaseException.class)
     @ResponseBody
-    public Result handle(LeaseException e){
-        e.printStackTrace();
+    public Result<?> handleLeaseException(LeaseException e){
+        log.error("[BizException] code={}, msg={}", e.getCode(), e.getMessage(), e);
         return Result.fail(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * 系统异常（不返回真实错误）
+     */
+    @ExceptionHandler(Exception.class)
+    @ResponseBody
+    public Result<?> handleException(Exception e){
+        log.error("[SystemException] {}", e.getMessage(), e);
+        return Result.fail(500, "系统异常，请稍后再试");
     }
 }
