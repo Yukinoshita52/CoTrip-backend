@@ -5,8 +5,11 @@ import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.dto.InvitationCreateDTO;
 import com.trip.model.dto.PlaceBatchImportDTO;
+import com.trip.model.dto.TripUpdateDTO;
 import com.trip.model.vo.InvitationVO;
 import com.trip.model.vo.PlaceCreateVO;
+import com.trip.model.vo.TripDetailVO;
+import com.trip.model.vo.TripVO;
 import com.trip.web.service.InvitationService;
 import com.trip.web.service.TripPlaceService;
 import com.trip.web.service.TripService;
@@ -24,17 +27,91 @@ public class TripController {
     private final TripPlaceService tripPlaceService;
     private final InvitationService invitationService;
 
-//    // 获取行程中的所有地点 & 交通
-//    @GetMapping("/itinerary")
+    /**
+     * 查看行程详情（含地点列表）
+     * @param tripId 行程ID
+     * @return 行程详情
+     */
+    @GetMapping
+    public Result<TripDetailVO> getTripDetail(@PathVariable Long tripId) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        TripDetailVO detailVO = tripService.getTripDetail(tripId, loginUser.getUserId());
+        return Result.ok(detailVO);
+    }
 
-//    // 调整地点顺序
-//    @PutMapping("/places/order")
-//    public Result<Void> updatePlaceOrder(
-//            @PathVariable Long tripId,
-//            @RequestBody List<Long> placeIds) {
-//        tripPlaceService.updatePlaceOrder(tripId, placeIds);
-//        return Result.ok();
-//    }
+    /**
+     * 删除行程
+     * @param tripId 行程ID
+     * @return 操作结果
+     */
+    @DeleteMapping
+    public Result<Void> deleteTrip(@PathVariable Long tripId) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        tripService.deleteTrip(tripId, loginUser.getUserId());
+        return Result.ok();
+    }
+
+    /**
+     * 修改行程信息
+     * @param tripId 行程ID
+     * @param dto 行程更新信息
+     * @return 更新后的行程信息
+     */
+    @PutMapping
+    public Result<TripVO> updateTrip(
+            @PathVariable Long tripId,
+            @RequestBody @Validated TripUpdateDTO dto) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        TripVO tripVO = tripService.updateTrip(tripId, dto, loginUser.getUserId());
+        return Result.ok(tripVO);
+    }
+
+    /**
+     * 编辑地点顺序
+     * @param tripId 行程ID
+     * @param placeIds 地点ID列表（按顺序排列）
+     * @return 操作结果
+     */
+    @PutMapping("/places/order")
+    public Result<Void> updatePlaceOrder(
+            @PathVariable Long tripId,
+            @RequestBody List<Long> placeIds) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        tripPlaceService.updatePlaceOrder(tripId, placeIds);
+        return Result.ok();
+    }
+
+    /**
+     * 一键规划行程路线
+     * @param tripId 行程ID
+     * @return 规划结果
+     */
+    @GetMapping("/auto-plan")
+    public Result<String> autoPlanRoute(@PathVariable Long tripId) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        String message = tripService.autoPlanRoute(tripId, loginUser.getUserId());
+        return Result.ok(message);
+    }
 
     // 批量导入地点
     @PostMapping("/places/import")

@@ -5,6 +5,8 @@ import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.dto.TripCreateDTO;
 import com.trip.model.vo.TripVO;
+
+import java.util.List;
 import com.trip.web.service.TripService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -36,8 +38,19 @@ public class TripsController {
         return Result.ok(tripVO);
     }
 
-    // 后续可以添加其他不需要tripId的接口，如：
-    // @GetMapping - 获取用户的所有行程
-    // @GetMapping("/search") - 搜索行程
+    /**
+     * 查看行程列表（按用户筛选）
+     * @return 行程列表
+     */
+    @GetMapping
+    public Result<List<TripVO>> getTrips() {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        List<TripVO> trips = tripService.getUserTrips(loginUser.getUserId());
+        return Result.ok(trips);
+    }
 }
 

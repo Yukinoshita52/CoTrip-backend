@@ -3,6 +3,8 @@ package com.trip.web.service;
 import com.trip.model.entity.TripPlace;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
 * @author 26423
 * @description 针对表【trip_place(行程-地点关系表)】的数据库操作Service
@@ -11,4 +13,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface TripPlaceService extends IService<TripPlace> {
 
     void deletePlace(Long tripId, Long placeId);
+
+    /**
+     * 更新地点顺序
+     * @param tripId 行程ID
+     * @param placeIds 地点ID列表（按顺序排列）
+     */
+    void updatePlaceOrder(Long tripId, List<Long> placeIds);
 }
