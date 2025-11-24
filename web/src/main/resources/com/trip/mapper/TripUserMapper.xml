@@ -21,7 +21,7 @@
     <select id="getAuthorByTripId" resultType="com.trip.model.vo.AuthorVO">
         select user.id as userId, user.nickname as nickname, graph_info.url as avatar
         from trip_user
-                 join user on trip_user.user_id = "user".id and trip_user.trip_id = #{tripId}
+                 join user on trip_user.user_id = user.id and trip_user.trip_id = #{tripId}
                  join graph_info on graph_info.item_id = user.id and graph_info.item_type = 1
     </select>
 </mapper>

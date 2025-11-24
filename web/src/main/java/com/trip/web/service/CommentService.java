@@ -3,8 +3,7 @@ package com.trip.web.service;
 import com.trip.model.dto.CommentDTO;
 import com.trip.model.entity.Comment;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.trip.model.vo.CommentCreatedVO;
-import com.trip.model.vo.CommentListVO;
+import com.trip.model.vo.*;
 
 /**
 * @author 26423
@@ -16,4 +15,12 @@ public interface CommentService extends IService<Comment> {
     CommentListVO getCommentsByPostId(Long postId);
 
     CommentCreatedVO addComment(CommentDTO dto, Long userId);
+
+    CommentDeletedVO deleteComment(Long commentId);
+
+    PostLikeVO likePost(Long postId,Long userId);
+
+    PostLikeVO unlikePost(Long postId, Long userId);
+
+    PostLikeUsersVO getPostLikeUsers(Long postId);
 }

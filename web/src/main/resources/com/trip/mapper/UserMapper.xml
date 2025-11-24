@@ -20,4 +20,49 @@
         id,username,password,nickname,avatar_id,phone,
         create_time,update_time,is_deleted
     </sql>
+    <select id="getAuthorVoByUserId" resultType="com.trip.model.vo.AuthorVO">
+        select user.id as userId, user.nickname, graph_info.url as avatar
+        from user
+                 join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
+        where user.id = #{userId}
+    </select>
+
+    <select id="getUserPostStatsByUserId" resultType="com.trip.model.vo.UserPostsStatsVO">
+        select (select count(*)
+                from post
+                where post.user_id = #{userId}) as postCount,
+
+               (select count(*)
+                from post_like
+                where post_like.post_id in
+                      (select post.id
+                       from post
+                       where post.user_id = #{userId})) as totalLikes
+    </select>
+
+
+    <resultMap id="UserPostMap" type="com.trip.model.vo.UserPostVO">
+        <id property="postId" column="postId"/>
+
+        <result property="tripName" column="tripName"/>
+        <result property="createTime" column="create_time"/>
+
+        <collection property="coverImages" ofType="java.lang.String">
+            <result column="url"/>
+        </collection>
+    </resultMap>
+    <select id="getUserPostsByUserId" resultMap="UserPostMap">
+        select post.id as postId, trip.name as tripName, graph_info.url, post.create_time
+        from post
+        join trip on trip.id = post.trip_id and post.user_id = #{userId}
+        join graph_info on trip.id = graph_info.item_id and graph_info.item_type = 2
+    </select>
+
+
+    <select id="getAuthorVoByKeyword" resultType="com.trip.model.vo.AuthorVO">
+        select user.id as userId,user.nickname,graph_info.url as avatar
+        from user
+        join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
+        where user.nickname like CONCAT('%',#{keyword},'%')
+    </select>
 </mapper>

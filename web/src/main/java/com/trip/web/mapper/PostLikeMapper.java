@@ -2,6 +2,8 @@ package com.trip.web.mapper;
 
 import com.trip.model.entity.PostLike;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.trip.model.vo.AuthorVO;
+import org.apache.ibatis.annotations.MapKey;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,12 @@ import java.util.Map;
 */
 public interface PostLikeMapper extends BaseMapper<PostLike> {
 
+    @MapKey("postId")
     Map<Long, Integer> countByPostIds(List<Long> postIds);
+
+    Integer countByPostId(Long postId);
+
+    List<AuthorVO> getPostLikeUserByPostId(Long postId);
 }
 
 

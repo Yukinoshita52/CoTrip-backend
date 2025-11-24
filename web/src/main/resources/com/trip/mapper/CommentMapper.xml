@@ -33,7 +33,19 @@
         GROUP BY post_id
     </select>
 
-    <select id="getCommentsByPostId" resultType="com.trip.model.vo.CommentVO">
+    <resultMap id="getCommentsByPostIdMap" type="com.trip.model.vo.CommentVO">
+        <id property="commentId" column="commentId"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="parentId" column="parent_id"/>
+
+        <association property="user" javaType="com.trip.model.vo.AuthorVO">
+            <result property="userId" column="userId"/>
+            <result property="nickname" column="nickname"/>
+            <result property="avatar" column="avatar"/>
+        </association>
+    </resultMap>
+    <select id="getCommentsByPostId" resultMap="getCommentsByPostIdMap">
         select comment.id      as commentId,
                comment.user_id as userId,
                user.nickname   as nickname,
@@ -43,6 +55,12 @@
                comment.parent_id
         from comment
                  join graph_info on comment.user_id = graph_info.item_id and graph_info.item_type = 1
-                 join user on comment.user_id = "user".id
+                 join user on comment.user_id = user.id
+    </select>
+
+    <select id="getChildCommentIds" resultType="java.lang.Long">
+        select id
+        from comment
+        where parent_id = #{commentId}
     </select>
 </mapper>

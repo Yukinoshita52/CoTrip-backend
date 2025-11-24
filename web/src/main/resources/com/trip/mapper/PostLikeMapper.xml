@@ -27,4 +27,15 @@
         </foreach>
         GROUP BY post_id
     </select>
+    <select id="countByPostId" resultType="java.lang.Integer">
+        select count(*) as likeCount
+        from post_like
+        where post_like.post_id = #{postId}
+    </select>
+    <select id="getPostLikeUserByPostId" resultType="com.trip.model.vo.AuthorVO">
+        select post_like.user_id, user.nickname, graph_info.url as avatar
+        from post_like
+                 join graph_info on post_like.user_id = graph_info.item_id and graph_info.item_type = 1
+                 join user on post_like.user_id = user.id
+    </select>
 </mapper>

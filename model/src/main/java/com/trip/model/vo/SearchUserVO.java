@@ -11,5 +11,5 @@ import java.util.List;
 @Data
 public class SearchUserVO {
     private String keyword;
-    private List<User> users; // 用 entity
+    private List<AuthorVO> users;
 }

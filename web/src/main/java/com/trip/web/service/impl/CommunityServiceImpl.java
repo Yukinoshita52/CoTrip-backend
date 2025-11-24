@@ -49,6 +49,8 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     private final PlaceMapper placeMapper;
     @Resource
     private final PostMapper postMapper;
+    @Resource
+    private final CommunityMapper communityMapper;
 
     /**
      * 1.首先对post表是分页查询数据的，查询到一系列的id as post_id。
@@ -207,6 +209,9 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     public PostDetailVO getPostDetail(Long postId) {
         //数据查询
         Post post = postMapper.selectById(postId);
+        if(post == null){
+            return null;
+        }
         Trip trip = tripMapper.selectById(post.getTripId());//从trip中获取一些数据
         List<PlaceDayTypeVO> days = placeMapper.getPlaceDayTypeByTripId(trip.getId());
         List<String> images = graphInfoMapper.getTripImagesByTripId(trip.getId());
@@ -225,14 +230,24 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         tripDetailVO.setDescription(trip.getDescription());
         tripDetailVO.setDays(days);
         tripDetailVO.setImages(images);
+        vo.setTrip(tripDetailVO);
+        vo.setAuthor(author);
         vo.setStats(stats);
+        vo.setCreateTime(post.getCreateTime());
 
         return vo;
     }
 
     @Override
-    public PostCreatedVO createPost(TripDTO dto) {
+    public PostCreatedVO createPost(Long userId,TripDTO dto) {
+//        如果dto中的行程已经被删除了，那么这里就不能再进行创建了
+        if (tripMapper.selectById(dto.getTripId()) == null) {
+            return null;
+        }
+
+
         Post post = new Post();
+        post.setUserId(userId);
         post.setTripId(dto.getTripId());
         postMapper.insert(post);
 
@@ -240,6 +255,41 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         res.setPostId(post.getId());
         res.setCreateTime(post.getCreateTime());
         res.setTripId(dto.getTripId());
+        return res;
+    }
+
+    @Override
+    public UserProfileVO getUserProfile(Long userId) {
+        AuthorVO authorVO = userMapper.getAuthorVoByUserId(userId);
+        UserPostsStatsVO stats = userMapper.getUserPostStatsByUserId(userId);
+        List<UserPostVO> posts = userMapper.getUserPostsByUserId(userId);
+
+        UserProfileVO res = new UserProfileVO();
+        res.setUserId(userId);
+        res.setNickname(authorVO.getNickname());
+        res.setAvatar(authorVO.getAvatar());
+        res.setStats(stats);
+        res.setPosts(posts);
+        return res;
+    }
+
+    @Override
+    public SearchPostVO searchMatchPosts(String keyword) {
+        List<SearchPostVO.SearchItemVO> items = communityMapper.getPostsByKeyWord(keyword);
+
+        SearchPostVO res = new SearchPostVO();
+        res.setResults(items);
+        res.setKeyword(keyword);
+        return res;
+    }
+
+    @Override
+    public SearchUserVO searchAuthorByKeyword(String keyword) {
+        List<AuthorVO> users = userMapper.getAuthorVoByKeyword(keyword);
+
+        SearchUserVO res = new SearchUserVO();
+        res.setKeyword(keyword);
+        res.setUsers(users);
         return res;
     }
 

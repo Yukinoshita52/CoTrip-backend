@@ -2,6 +2,7 @@ package com.trip.web.service;
 
 import com.trip.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.trip.model.vo.SearchUserVO;
 import com.trip.model.vo.UserVO;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.multipart.MultipartFile;

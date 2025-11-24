@@ -13,8 +13,7 @@ import lombok.Data;
 @TableName(value ="post")
 @Data
 public class Post extends BaseEntity {
-    /**
-     * ID
-     */
     private Long tripId;
+
+    private Long userId;
 }

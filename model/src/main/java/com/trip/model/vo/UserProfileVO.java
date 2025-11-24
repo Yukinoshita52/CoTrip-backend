@@ -13,20 +13,6 @@ public class UserProfileVO {
     private Long userId;
     private String nickname;
     private String avatar;
-    private Stats stats;
+    private UserPostsStatsVO stats;
     private List<UserPostVO> posts;
-
-    @Data
-    public static class Stats {
-        private Integer postCount;
-        private Integer totalLikes;
-    }
-
-    @Data
-    public static class UserPostVO {
-        private Long postId;
-        private String tripName;
-        private List<String> coverImages;
-        private Date createTime;
-    }
 }
