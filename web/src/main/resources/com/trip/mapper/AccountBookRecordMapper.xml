@@ -53,20 +53,23 @@
         </association>
     </resultMap>
     <select id="getRecord" resultMap="getRecordMap">
-        select abr.id as recordId,
+        select abr.id      as recordId,
                abr.book_id as bookId,
                abr.type,
                abr.amount,
-               abc.name as categoryName,
-               abc.icon as categoryIcon,
-               abr.remark as note,
+               abc.name    as categoryName,
+               abc.icon_id as iconId,
+               abr.remark  as note,
                abr.record_time,
-               user.id as userId,
+               user.id     as userId,
                user.nickname
         from account_book_record abr
                  join account_book_category abc on abr.category_id = abc.id
-                 join user on abr.user_id = "user".id
-        where abr.id = #{recordId} and abr.is_deleted = 0 and abc.is_deleted = 0 and user.is_deleted = 0
+                 join user on abr.user_id = user.id
+        where abr.id = #{recordId}
+          and abr.is_deleted = 0
+          and abc.is_deleted = 0
+          and user.is_deleted = 0
     </select>
 
     <select id="listRecordInfoByBookId" resultType="com.trip.model.dto.RecordDTO">
