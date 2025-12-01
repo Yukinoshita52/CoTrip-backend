@@ -24,20 +24,20 @@
         select user.id as userId, user.nickname, graph_info.url as avatar
         from user
                  join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
-        where user.id = #{userId}
+        where user.id = #{userId} and user.is_deleted = 0
     </select>
 
     <select id="getUserPostStatsByUserId" resultType="com.trip.model.vo.UserPostsStatsVO">
         select (select count(*)
                 from post
-                where post.user_id = #{userId}) as postCount,
+                where post.user_id = #{userId} and post.is_deleted = 0) as postCount,
 
                (select count(*)
                 from post_like
                 where post_like.post_id in
                       (select post.id
                        from post
-                       where post.user_id = #{userId})) as totalLikes
+                       where post.user_id = #{userId} and post.is_deleted = 0)) as totalLikes
     </select>
 
 
@@ -55,14 +55,16 @@
         select post.id as postId, trip.name as tripName, graph_info.url, post.create_time
         from post
         join trip on trip.id = post.trip_id and post.user_id = #{userId}
-        join graph_info on trip.id = graph_info.item_id and graph_info.item_type = 2
+        left join graph_info on trip.id = graph_info.item_id and graph_info.item_type = 2
+        where post.is_deleted = 0
     </select>
 
 
     <select id="getAuthorVoByKeyword" resultType="com.trip.model.vo.AuthorVO">
-        select user.id as userId,user.nickname,graph_info.url as avatar
+        select user.id as userId, user.nickname, graph_info.url as avatar
         from user
-        join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
-        where user.nickname like CONCAT('%',#{keyword},'%')
+                 left join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
+        where user.nickname like CONCAT('%', #{keyword}, '%')
+          and user.is_deleted = 0
     </select>
 </mapper>

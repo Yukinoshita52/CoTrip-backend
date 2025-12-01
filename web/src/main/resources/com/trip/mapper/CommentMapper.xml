@@ -20,7 +20,11 @@
         update_time,is_deleted
     </sql>
 
-    <select id="countByPostIds" resultType="java.util.Map">
+    <resultMap id="PostCountMap" type="com.trip.model.dto.CommentCountDTO">
+        <id column="postId" property="postId" javaType="java.lang.Long"/>
+        <result column="count" property="commentCount" javaType="java.lang.Integer"/>
+    </resultMap>
+    <select id="countByPostIds" resultMap="PostCountMap">
         SELECT
         post_id AS postId,
         COUNT(*) AS count

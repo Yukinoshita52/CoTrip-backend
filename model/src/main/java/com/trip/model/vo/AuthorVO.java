@@ -1,5 +1,7 @@
 package com.trip.model.vo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 /**
@@ -15,5 +17,7 @@ import lombok.Data;
 public class AuthorVO {
     private Long userId;
     private String nickname;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String avatar;
 }

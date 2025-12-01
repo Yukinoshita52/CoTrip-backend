@@ -1,5 +1,6 @@
 package com.trip.web.mapper;
 
+import com.trip.model.dto.CommentCountDTO;
 import com.trip.model.entity.Comment;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.trip.model.vo.CommentVO;
@@ -17,7 +18,7 @@ import java.util.Map;
 public interface CommentMapper extends BaseMapper<Comment> {
 
     @MapKey("postId")
-    Map<Long, Integer> countByPostIds(List<Long> postIds);
+    Map<Long, CommentCountDTO> countByPostIds(List<Long> postIds);
 
     List<CommentVO> getCommentsByPostId(Long postId);
 

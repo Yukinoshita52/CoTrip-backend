@@ -123,9 +123,6 @@ CREATE TABLE comment (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
-    -- INDEX idx_post_id (post_id),
-    -- INDEX idx_user_id (user_id),
-    -- INDEX idx_parent_id (parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评论表';
 
 ```
@@ -139,28 +136,40 @@ CREATE TABLE post_like (
     user_id BIGINT NOT NULL COMMENT '用户ID，对应 user.id',
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
     is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
-    -- UNIQUE KEY uniq_post_user (post_id, user_id),
-    -- INDEX idx_post_id (post_id),
-    -- INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子点赞表';
 
 ```
+
+### 账本表(book)
+
+> 注：一个行程（trip）只能对应一个账本（book），一个账本（book）由多个用户（user）共享
+
+```sql
+CREATE TABLE `book` (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '账本表ID',
+    trip_id BIGINT NOT NULL COMMENT '所属行程ID',
+    name VARCHAR(30) NOT NULL COMMENT '账本名称',
+    
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删 1-已删'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='账本表';
+
+```
+
+
 
 ### 记账分类表(account_book_category)
 
 ```sql
 CREATE TABLE account_book_category (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '分类ID',
-    user_id BIGINT NOT NULL COMMENT '所属用户ID',
     name VARCHAR(100) NOT NULL COMMENT '分类名称',
     type TINYINT NOT NULL COMMENT '类型：1-支出 2-收入',
-    icon VARCHAR(100) DEFAULT NULL COMMENT '图标',
-    sort INT DEFAULT 0 COMMENT '排序值',
+    icon_id BIGINT DEFAULT NULL COMMENT '图标url(对应graph_info.id)',
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删 1-已删',
-    -- INDEX idx_user (user_id),
-    -- INDEX idx_type (type)
+    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删 1-已删'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='记账分类表';
 
 ```
@@ -170,7 +179,8 @@ CREATE TABLE account_book_category (
 ```sql
 CREATE TABLE account_book_record (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '账单ID',
-    user_id BIGINT NOT NULL COMMENT '用户ID',
+    book_id BIGINT NOT NULL COMMENT '所属账本ID',
+    user_id BIGINT NOT NULL COMMENT '所属用户ID',
     category_id BIGINT NOT NULL COMMENT '分类ID',
     amount DECIMAL(10,2) NOT NULL COMMENT '金额',
     type TINYINT NOT NULL COMMENT '类型：1-支出 2-收入',
@@ -178,10 +188,7 @@ CREATE TABLE account_book_record (
     remark VARCHAR(255) DEFAULT NULL COMMENT '备注',
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删 1-已删',
-    -- INDEX idx_user (user_id),
-    -- INDEX idx_category (category_id),
-    -- INDEX idx_record_time (record_time)
+    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删 1-已删'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='记账流水表';
 
 ```
@@ -253,4 +260,20 @@ CREATE TABLE trip_user (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='行程-用户关系表';
 
 ```
+
+### 账本-用户关系表(book_user)
+
+```sql
+CREATE TABLE book_user (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '账本-用户关系表ID',
+    book_id BIGINT NOT NULL COMMENT '账本ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='账本-用户关系表';
+
+```
+
+
 

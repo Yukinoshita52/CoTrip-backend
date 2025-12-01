@@ -3,6 +3,8 @@ package com.trip.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.trip.model.dto.CommentCountDTO;
+import com.trip.model.dto.LikeCountDTO;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.entity.*;
 import com.trip.model.vo.*;
@@ -11,7 +13,6 @@ import com.trip.web.mapper.*;
 import com.trip.web.service.CommunityService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.web.PortMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -147,14 +148,14 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         /*
          * 7. 批量查 commentCount
          */
-        Map<Long, Integer> commentCountMap =
-                commentMapper.countByPostIds(postIds); // 你需要在 mapper.xml 写 group by
+        Map<Long, CommentCountDTO> commentCountMap =
+                commentMapper.countByPostIds(postIds);
 
 
         /*
          * 8. 批量查 likeCount
          */
-        Map<Long, Integer> likeCountMap =
+        Map<Long, LikeCountDTO> likeCountMap =
                 postLikeMapper.countByPostIds(postIds);
 
 
@@ -187,8 +188,10 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             vo.setAuthor(author);
 
             StatVO stats = new StatVO();
-            stats.setCommentCount(commentCountMap.getOrDefault(post.getId(), 0));
-            stats.setLikeCount(likeCountMap.getOrDefault(post.getId(), 0));
+            CommentCountDTO commentCountDTO = commentCountMap.getOrDefault(post.getId(), null);
+            LikeCountDTO likeCountDTO = likeCountMap.getOrDefault(post.getId(), null);
+            stats.setCommentCount(commentCountDTO == null ? 0 : commentCountDTO.getCommentCount());
+            stats.setLikeCount(likeCountDTO == null ? 0 : likeCountDTO.getLikeCount());
             vo.setStats(stats);
 
             vo.setCreateTime(post.getCreateTime());
@@ -292,6 +295,5 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         res.setUsers(users);
         return res;
     }
-
 }
 

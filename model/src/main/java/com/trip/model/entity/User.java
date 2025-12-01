@@ -13,8 +13,6 @@ import lombok.Data;
 @TableName(value ="user")
 @Data
 public class User extends BaseEntity{
-    @TableId
-    private Long id;
     /**
      * 用户名
      */
