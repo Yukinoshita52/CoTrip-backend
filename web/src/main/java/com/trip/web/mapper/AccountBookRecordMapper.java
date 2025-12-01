@@ -19,7 +19,7 @@ import java.util.List;
 */
 public interface AccountBookRecordMapper extends BaseMapper<AccountBookRecord> {
 
-    List<RecordVO> pageRecords(@Param("bookId") Long bookId, @Param("page") Integer page,@Param("size") Integer size);
+    List<RecordVO> pageRecords(@Param("bookId") Long bookId, @Param("offset") Integer offset,@Param("size") Integer size);
 
     RecordVO getRecord(@Param("recordId") Long recordId);
 

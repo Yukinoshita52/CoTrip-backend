@@ -35,7 +35,7 @@ public class RecordVO {
     private String categoryName;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String categoryIcon;
+    private Long iconId;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String note;

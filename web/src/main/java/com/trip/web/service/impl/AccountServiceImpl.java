@@ -113,7 +113,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public RecordPageVO pageRecords(Long bookId, Integer page, Integer size) {
-        List<RecordVO> records = accountBookRecordMapper.pageRecords(bookId,page,size);
+        List<RecordVO> records = accountBookRecordMapper.pageRecords(bookId,(page-1)*size,size);
 
         RecordPageVO res = new RecordPageVO();
         res.setPage(page);

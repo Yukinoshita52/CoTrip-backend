@@ -35,7 +35,7 @@
                abr.record_time,
                abr.remark as note,
                abc.name as categoryName,
-               abc.icon as categoryIcon,
+               abc.icon_id as iconId,
 
                user.id as userId,
                user.nickname
@@ -43,7 +43,7 @@
                  join account_book_category abc on abr.category_id = abc.id
                  join user on user.id = abr.user_id
         where abr.book_id = #{bookId} and abr.is_deleted = 0 and abc.is_deleted = 0 and user.is_deleted = 0
-        limit (#{page}-1)*#{size},#{size}
+        limit #{offset},#{size}
     </select>
 
     <resultMap id="getRecordMap" type="com.trip.model.vo.RecordVO" autoMapping="true">
