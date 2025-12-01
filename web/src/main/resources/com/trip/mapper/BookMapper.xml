@@ -23,12 +23,13 @@
         select book.id                           as bookId,
                book.name,
                book.trip_id                      as tripId,
-               count(account_book_record.amount) as totalAmount,
+               SUM(account_book_record.amount) as totalAmount,
                account_book_record.type
         from book
-                 join account_book_record on book.id = account_book_record.book_id
-                                                    and book.user_id = #{userId}
-        where book.is_deleted = 0 and account_book_record.is_deleted = 0
-        group by account_book_record.type
+                 join account_book_record
+                      on book.id = account_book_record.book_id and account_book_record.user_id = #{userId}
+        where book.is_deleted = 0
+          and account_book_record.is_deleted = 0
+        group by book.id, book.name, book.trip_id, account_book_record.type
     </select>
 </mapper>

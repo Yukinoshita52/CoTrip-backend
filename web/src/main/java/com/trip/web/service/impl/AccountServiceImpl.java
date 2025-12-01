@@ -118,6 +118,7 @@ public class AccountServiceImpl implements AccountService {
         RecordPageVO res = new RecordPageVO();
         res.setPage(page);
         res.setSize(size);
+        res.setTotal(records.size());
         res.setLists(records);
         return res;
     }
