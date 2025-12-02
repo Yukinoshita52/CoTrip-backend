@@ -58,7 +58,7 @@ public class AccountController {
 
     @DeleteMapping("/book/{bookId}")
     public Result<Void> removeAccountBook(@PathVariable Long bookId) {
-        accountService.removeBookById(bookId);
+        accountService.removeRecordById(bookId);
         return Result.ok();
     }
 
@@ -89,7 +89,7 @@ public class AccountController {
 
     @DeleteMapping("record/{recordId}")
     public Result<Void> deleteRecord(@PathVariable("recordId") Long recordId) {
-        accountService.removeBookById(recordId);
+        accountService.removeRecordById(recordId);
         return Result.ok();
     }
 

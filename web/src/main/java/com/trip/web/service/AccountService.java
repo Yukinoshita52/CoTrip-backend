@@ -21,7 +21,7 @@ public interface AccountService {
 
     List<AccountBookDetailVO> getAllAccountBooks(Long userId);
 
-    void removeBookById(Long bookId);
+    void removeRecordById(Long recordId);
 
     /**
      * 根据用户id和所给的RecordDTO信息，在account_book_category中新增一条记录

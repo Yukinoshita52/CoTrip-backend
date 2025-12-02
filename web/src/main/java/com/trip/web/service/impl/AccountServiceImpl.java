@@ -89,8 +89,8 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public void removeBookById(Long bookId) {
-        bookMapper.deleteById(bookId);
+    public void removeRecordById(Long recordId) {
+        accountBookRecordMapper.deleteById(recordId);
     }
 
     @Override
@@ -131,8 +131,12 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public RecordVO updateRecord(Long recordId, RecordDTO record) {
         AccountBookRecord accountBookRecord = accountBookRecordMapper.selectById(recordId);
-        accountBookRecord.setAmount(record.getAmount());
-        accountBookRecord.setRemark(record.getNote());
+        if(record.getAmount() != null){
+            accountBookRecord.setAmount(record.getAmount());
+        }
+        if(record.getNote() != null){
+            accountBookRecord.setRemark(record.getNote());
+        }
         accountBookRecordMapper.updateById(accountBookRecord);
         RecordVO res = new RecordVO();
         res.setRecordId(recordId);
@@ -161,14 +165,21 @@ public class AccountServiceImpl implements AccountService {
                 totalExpense = totalExpense.add(record.getAmount());
                 //若无该类型，则新增此类型的key
                 if(!categoryStats.containsKey(categoryName)){
-                    Objects.requireNonNull(categoryStats.put(categoryName, new BookStatsVO.CategoryStat())).setCategoryName(categoryName);
+                    // 1. 创建新对象
+                    BookStatsVO.CategoryStat newStat = new BookStatsVO.CategoryStat();
+                    // 2. 设置属性
+                    newStat.setCategoryName(categoryName);
+                    // 3. 放入Map
+                    categoryStats.put(categoryName, newStat);
                 }
                 BookStatsVO.CategoryStat categoryStat = categoryStats.get(categoryName);
                 //累加该分类下的花费（expense）
                 categoryStat.setExpense(categoryStat.getExpense().add(record.getAmount()));
 
                 if(!dailyStats.containsKey(date)){
-                    Objects.requireNonNull(dailyStats.put(date, new BookStatsVO.DailyStat())).setDate(date);
+                    BookStatsVO.DailyStat dailyStat = new BookStatsVO.DailyStat();
+                    dailyStat.setDate(date);
+                    dailyStats.put(date, dailyStat);
                 }
                 BookStatsVO.DailyStat dailyStat = dailyStats.get(date);
                 dailyStat.setExpense(dailyStat.getExpense().add(record.getAmount()));
@@ -177,7 +188,9 @@ public class AccountServiceImpl implements AccountService {
                 totalIncome = totalIncome.add(record.getAmount());
 
                 if(!dailyStats.containsKey(date)){
-                    Objects.requireNonNull(dailyStats.put(date, new BookStatsVO.DailyStat())).setDate(date);
+                    BookStatsVO.DailyStat dailyStat = new BookStatsVO.DailyStat();
+                    dailyStat.setDate(date);
+                    dailyStats.put(date, dailyStat);
                 }
                 BookStatsVO.DailyStat dailyStat = dailyStats.get(date);
                 dailyStat.setIncome(dailyStat.getIncome().add(record.getAmount()));
@@ -188,8 +201,12 @@ public class AccountServiceImpl implements AccountService {
         res.setBookId(bookId);
         res.setTotalExpense(totalExpense);
         res.setTotalIncome(totalIncome);
-        res.setCategoryStats((List<BookStatsVO.CategoryStat>) categoryStats.values());
-        res.setDailyStats((List<BookStatsVO.DailyStat>) dailyStats.values());
+
+        // 修正: 使用 new ArrayList() 将 Collection 转换为 List
+        res.setCategoryStats(new ArrayList<>(categoryStats.values()));
+        res.setDailyStats(new ArrayList<>(dailyStats.values()));
+//        res.setCategoryStats((List<BookStatsVO.CategoryStat>) categoryStats.values());
+//        res.setDailyStats((List<BookStatsVO.DailyStat>) dailyStats.values());
         return res;
     }
 
@@ -204,7 +221,11 @@ public class AccountServiceImpl implements AccountService {
             PayMemberVO subRes = new PayMemberVO();
             subRes.setUserId(memberPay.getUserId());
             subRes.setNickname(memberPay.getNickname());
-            subRes.setShouldPay(memberPay.getExpense().divide(new BigDecimal(n),2, RoundingMode.HALF_UP));
+            if(memberPay.getExpense() == null){
+                subRes.setShouldPay(BigDecimal.ZERO);
+            }else{
+                subRes.setShouldPay(memberPay.getExpense().divide(new BigDecimal(n),2, RoundingMode.HALF_UP));
+            }
             res.add(subRes);
         }
         return res;

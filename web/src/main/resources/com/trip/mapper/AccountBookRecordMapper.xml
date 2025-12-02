@@ -75,7 +75,7 @@
     <select id="listRecordInfoByBookId" resultType="com.trip.model.dto.RecordDTO">
         select abr.amount,
                abr.type,
-               abr.record_time as date,
+               abr.record_time as recordTime,
                abc.name as categoryName
         from account_book_record abr
                  join account_book_category abc on abr.category_id = abc.id
@@ -84,17 +84,18 @@
     </select>
 
     <select id="getMemberPays" resultType="com.trip.model.dto.MemberPayDTO">
-        select user.id as userId,
-               user.nickname,
-               abr.amount as expense
-        from book_user
-                 left join user on book_user.user_id = `user`.id
-                 join account_book_record abr on abr.book_id = book_user.book_id
-        where abr.type = 1
-          and book_user.book_id = #{bookId}
-          and abr.is_deleted = 0
-          and book_user.is_deleted = 0
-          and user.is_deleted = 0
-        group by userId,nickname
+
+
+        select t.userId, t.nickname,SUM(abr.amount) as expense
+        from (select user.id as userId,
+                     user.nickname,
+                     book_user.book_id
+              from book_user
+                       left join user on book_user.user_id = `user`.id
+              where book_user.book_id = #{bookId}
+                and book_user.is_deleted = 0
+                and user.is_deleted = 0) as t
+                 left join account_book_record abr on abr.user_id = t.userId and abr.book_id = t.book_id and abr.is_deleted = 0
+        group by t.userId, t.nickname;
     </select>
 </mapper>
