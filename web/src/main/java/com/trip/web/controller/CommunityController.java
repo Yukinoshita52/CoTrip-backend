@@ -6,9 +6,11 @@ import com.trip.common.result.Result;
 import com.trip.model.dto.CommentDTO;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.vo.*;
+import com.trip.web.mapper.CommunityMapper;
 import com.trip.web.service.CommentService;
 import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostService;
+import com.trip.web.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +53,8 @@ public class CommunityController {
     // 3. 发布帖子
     @PostMapping("/post")
     public Result<PostCreatedVO> createPost(@RequestBody TripDTO dto) {
-        PostCreatedVO vo = communityService.createPost(dto);
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        PostCreatedVO vo = communityService.createPost(loginUser.getUserId(),dto);
         return Result.ok(vo);
     }
 
@@ -77,45 +80,60 @@ public class CommunityController {
         return Result.ok(res);
     }
 
-    // 5.3 删除评论
+    // 5.3 删除评论（具体看删除的是父评论还是子评论）
     @DeleteMapping("/comment/{commentId}")
     public Result<CommentDeletedVO> deleteComment(@PathVariable Long commentId) {
-        return null;
+        CommentDeletedVO res = commentService.deleteComment(commentId);
+        return Result.ok(res);
     }
 
     // 6.1 点赞
     @PostMapping("/post/{postId}/like")
     public Result<PostLikeVO> likePost(@PathVariable Long postId) {
-        return null;
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        PostLikeVO res = commentService.likePost(postId,loginUser.getUserId());
+        return Result.ok(res);
     }
 
     // 6.2 取消点赞
     @DeleteMapping("/post/{postId}/like")
     public Result<PostLikeVO> unlikePost(@PathVariable Long postId) {
-        return null;
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        PostLikeVO res = commentService.unlikePost(postId,loginUser.getUserId());
+        return Result.ok(res);
     }
 
     // 6.3 查询点赞用户
     @GetMapping("/post/{postId}/likes")
     public Result<PostLikeUsersVO> getPostLikes(@PathVariable Long postId) {
-        return null;
+        PostLikeUsersVO res = commentService.getPostLikeUsers(postId);
+        return Result.ok(res);
     }
 
     // 7. 用户主页
     @GetMapping("/user/{userId}")
     public Result<UserProfileVO> getUserProfile(@PathVariable Long userId) {
-        return null;
+        UserProfileVO res = communityService.getUserProfile(userId);
+        return Result.ok(res);
     }
 
-    // 8.1 搜索帖子
+    /**
+     * 8.1 搜索帖子
+     * 这个接口先简单实现（keyword就直接对应去查trip.name）
+     * 后续优化思路：看看keyword是否是region名、是否跟description相关等
+     * @param keyword
+     * @return
+     */
     @GetMapping("/search")
     public Result<SearchPostVO> searchPosts(@RequestParam String keyword) {
-        return null;
+        SearchPostVO res = communityService.searchMatchPosts(keyword);
+        return Result.ok(res);
     }
 
     // 8.2 搜索用户
     @GetMapping("/search/user")
     public Result<SearchUserVO> searchUsers(@RequestParam String keyword) {
-        return null;
+        SearchUserVO res = communityService.searchAuthorByKeyword(keyword);
+        return Result.ok(res);
     }
 }

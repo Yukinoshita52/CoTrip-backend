@@ -2,8 +2,8 @@ package com.trip.web.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.model.entity.AccountBookRecord;
-import com.trip.web.service.AccountBookRecordService;
 import com.trip.web.mapper.AccountBookRecordMapper;
+import com.trip.web.service.AccountBookRecordService;
 import org.springframework.stereotype.Service;
 
 /**

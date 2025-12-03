@@ -14,10 +14,12 @@ import lombok.Data;
 @TableName(value ="account_book_record")
 @Data
 public class AccountBookRecord extends BaseEntity{
-
     /**
      * ID
      */
+    private Long bookId;
+
+
     private Long userId;
 
     /**

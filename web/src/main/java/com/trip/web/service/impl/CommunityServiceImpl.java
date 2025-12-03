@@ -3,6 +3,8 @@ package com.trip.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.trip.model.dto.CommentCountDTO;
+import com.trip.model.dto.LikeCountDTO;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.entity.*;
 import com.trip.model.vo.*;
@@ -11,7 +13,6 @@ import com.trip.web.mapper.*;
 import com.trip.web.service.CommunityService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.web.PortMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     private final PlaceMapper placeMapper;
     @Resource
     private final PostMapper postMapper;
+    @Resource
+    private final CommunityMapper communityMapper;
 
     /**
      * 1.首先对post表是分页查询数据的，查询到一系列的id as post_id。
@@ -145,14 +148,14 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         /*
          * 7. 批量查 commentCount
          */
-        Map<Long, Integer> commentCountMap =
-                commentMapper.countByPostIds(postIds); // 你需要在 mapper.xml 写 group by
+        Map<Long, CommentCountDTO> commentCountMap =
+                commentMapper.countByPostIds(postIds);
 
 
         /*
          * 8. 批量查 likeCount
          */
-        Map<Long, Integer> likeCountMap =
+        Map<Long, LikeCountDTO> likeCountMap =
                 postLikeMapper.countByPostIds(postIds);
 
 
@@ -185,8 +188,10 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             vo.setAuthor(author);
 
             StatVO stats = new StatVO();
-            stats.setCommentCount(commentCountMap.getOrDefault(post.getId(), 0));
-            stats.setLikeCount(likeCountMap.getOrDefault(post.getId(), 0));
+            CommentCountDTO commentCountDTO = commentCountMap.getOrDefault(post.getId(), null);
+            LikeCountDTO likeCountDTO = likeCountMap.getOrDefault(post.getId(), null);
+            stats.setCommentCount(commentCountDTO == null ? 0 : commentCountDTO.getCommentCount());
+            stats.setLikeCount(likeCountDTO == null ? 0 : likeCountDTO.getLikeCount());
             vo.setStats(stats);
 
             vo.setCreateTime(post.getCreateTime());
@@ -207,6 +212,9 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     public PostDetailVO getPostDetail(Long postId) {
         //数据查询
         Post post = postMapper.selectById(postId);
+        if(post == null){
+            return null;
+        }
         Trip trip = tripMapper.selectById(post.getTripId());//从trip中获取一些数据
         List<PlaceDayTypeVO> days = placeMapper.getPlaceDayTypeByTripId(trip.getId());
         List<String> images = graphInfoMapper.getTripImagesByTripId(trip.getId());
@@ -225,14 +233,24 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         tripDetailVO.setDescription(trip.getDescription());
         tripDetailVO.setDays(days);
         tripDetailVO.setImages(images);
+        vo.setTrip(tripDetailVO);
+        vo.setAuthor(author);
         vo.setStats(stats);
+        vo.setCreateTime(post.getCreateTime());
 
         return vo;
     }
 
     @Override
-    public PostCreatedVO createPost(TripDTO dto) {
+    public PostCreatedVO createPost(Long userId,TripDTO dto) {
+//        如果dto中的行程已经被删除了，那么这里就不能再进行创建了
+        if (tripMapper.selectById(dto.getTripId()) == null) {
+            return null;
+        }
+
+
         Post post = new Post();
+        post.setUserId(userId);
         post.setTripId(dto.getTripId());
         postMapper.insert(post);
 
@@ -243,5 +261,39 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         return res;
     }
 
+    @Override
+    public UserProfileVO getUserProfile(Long userId) {
+        AuthorVO authorVO = userMapper.getAuthorVoByUserId(userId);
+        UserPostsStatsVO stats = userMapper.getUserPostStatsByUserId(userId);
+        List<UserPostVO> posts = userMapper.getUserPostsByUserId(userId);
+
+        UserProfileVO res = new UserProfileVO();
+        res.setUserId(userId);
+        res.setNickname(authorVO.getNickname());
+        res.setAvatar(authorVO.getAvatar());
+        res.setStats(stats);
+        res.setPosts(posts);
+        return res;
+    }
+
+    @Override
+    public SearchPostVO searchMatchPosts(String keyword) {
+        List<SearchPostVO.SearchItemVO> items = communityMapper.getPostsByKeyWord(keyword);
+
+        SearchPostVO res = new SearchPostVO();
+        res.setResults(items);
+        res.setKeyword(keyword);
+        return res;
+    }
+
+    @Override
+    public SearchUserVO searchAuthorByKeyword(String keyword) {
+        List<AuthorVO> users = userMapper.getAuthorVoByKeyword(keyword);
+
+        SearchUserVO res = new SearchUserVO();
+        res.setKeyword(keyword);
+        res.setUsers(users);
+        return res;
+    }
 }
 

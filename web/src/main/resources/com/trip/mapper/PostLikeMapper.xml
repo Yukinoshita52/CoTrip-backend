@@ -15,7 +15,12 @@
     <sql id="Base_Column_List">
         id,post_id,user_id,create_time,is_deleted
     </sql>
-    <select id="countByPostIds" resultType="java.util.Map">
+
+    <resultMap id="countPostCountMap" type="com.trip.model.dto.LikeCountDTO">
+        <id column="postId" property="postId"/>
+        <result column="count" property="likeCount"/>
+    </resultMap>
+    <select id="countByPostIds" resultMap="countPostCountMap">
         SELECT
         post_id AS postId,
         COUNT(*) AS count
@@ -26,5 +31,19 @@
             #{id}
         </foreach>
         GROUP BY post_id
+    </select>
+
+
+    <select id="countByPostId" resultType="java.lang.Integer">
+        select count(*) as likeCount
+        from post_like
+        where post_like.post_id = #{postId} and post_like.is_deleted = 0
+    </select>
+    <select id="getPostLikeUserByPostId" resultType="com.trip.model.vo.AuthorVO">
+        select post_like.user_id, user.nickname, graph_info.url as avatar
+        from post_like
+                 join graph_info on post_like.user_id = graph_info.item_id and graph_info.item_type = 1
+                 join user on post_like.user_id = user.id
+        where post_like.is_deleted = 0
     </select>
 </mapper>

@@ -6,7 +6,7 @@
 
     <resultMap id="BaseResultMap" type="com.trip.model.entity.AccountBookRecord">
             <id property="id" column="id" />
-            <result property="userId" column="user_id" />
+            <result property="bookId" column="book_id" />
             <result property="categoryId" column="category_id" />
             <result property="amount" column="amount" />
             <result property="type" column="type" />
@@ -18,7 +18,84 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,category_id,amount,type,record_time,
+        id,book_id,category_id,amount,type,record_time,
         remark,create_time,update_time,is_deleted
     </sql>
+
+    <resultMap id="pageRecordsMap" type="com.trip.model.vo.RecordVO" autoMapping="true">
+        <id column="recordId" property="recordId"/>
+        <association property="user" autoMapping="true">
+            <id column="userId" property="userId"/>
+        </association>
+    </resultMap>
+    <select id="pageRecords" resultMap="pageRecordsMap">
+        select abr.id as recordId,
+               abr.amount,
+               abr.type,
+               abr.record_time,
+               abr.remark as note,
+               abc.name as categoryName,
+               abc.icon_id as iconId,
+
+               user.id as userId,
+               user.nickname
+        from account_book_record abr
+                 join account_book_category abc on abr.category_id = abc.id
+                 join user on user.id = abr.user_id
+        where abr.book_id = #{bookId} and abr.is_deleted = 0 and abc.is_deleted = 0 and user.is_deleted = 0
+        limit #{offset},#{size}
+    </select>
+
+    <resultMap id="getRecordMap" type="com.trip.model.vo.RecordVO" autoMapping="true">
+        <id column="recordId" property="recordId"/>
+        <association property="user" autoMapping="true">
+            <id column="userId" property="userId"/>
+        </association>
+    </resultMap>
+    <select id="getRecord" resultMap="getRecordMap">
+        select abr.id      as recordId,
+               abr.book_id as bookId,
+               abr.type,
+               abr.amount,
+               abc.name    as categoryName,
+               abc.icon_id as iconId,
+               abr.remark  as note,
+               abr.record_time,
+               user.id     as userId,
+               user.nickname
+        from account_book_record abr
+                 join account_book_category abc on abr.category_id = abc.id
+                 join user on abr.user_id = user.id
+        where abr.id = #{recordId}
+          and abr.is_deleted = 0
+          and abc.is_deleted = 0
+          and user.is_deleted = 0
+    </select>
+
+    <select id="listRecordInfoByBookId" resultType="com.trip.model.dto.RecordDTO">
+        select abr.amount,
+               abr.type,
+               abr.record_time as recordTime,
+               abc.name as categoryName
+        from account_book_record abr
+                 join account_book_category abc on abr.category_id = abc.id
+        where abr.is_deleted = 0
+          and abc.is_deleted = 0
+    </select>
+
+    <select id="getMemberPays" resultType="com.trip.model.dto.MemberPayDTO">
+
+
+        select t.userId, t.nickname,SUM(abr.amount) as expense
+        from (select user.id as userId,
+                     user.nickname,
+                     book_user.book_id
+              from book_user
+                       left join user on book_user.user_id = `user`.id
+              where book_user.book_id = #{bookId}
+                and book_user.is_deleted = 0
+                and user.is_deleted = 0) as t
+                 left join account_book_record abr on abr.user_id = t.userId and abr.book_id = t.book_id and abr.is_deleted = 0
+        group by t.userId, t.nickname;
+    </select>
 </mapper>

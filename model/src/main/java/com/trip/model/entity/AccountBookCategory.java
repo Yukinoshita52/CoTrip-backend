@@ -5,19 +5,16 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 
  * @TableName account_book_category
  */
+@EqualsAndHashCode(callSuper = true)
 @TableName(value ="account_book_category")
 @Data
 public class AccountBookCategory extends BaseEntity{
-    /**
-     * ID
-     */
-    private Long userId;
-
     /**
      * 
      */
@@ -31,11 +28,6 @@ public class AccountBookCategory extends BaseEntity{
     /**
      * 
      */
-    private String icon;
-
-    /**
-     * 
-     */
-    private Integer sort;
+    private Long iconId;
 
 }

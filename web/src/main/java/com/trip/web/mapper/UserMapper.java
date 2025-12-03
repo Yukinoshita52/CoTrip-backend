@@ -2,6 +2,12 @@ package com.trip.web.mapper;
 
 import com.trip.model.entity.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.trip.model.vo.AuthorVO;
+import com.trip.model.vo.UserPostVO;
+import com.trip.model.vo.UserPostsStatsVO;
+import com.trip.model.vo.UserProfileVO;
+
+import java.util.List;
 
 /**
 * @author 26423
@@ -11,6 +17,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface UserMapper extends BaseMapper<User> {
 
+    AuthorVO getAuthorVoByUserId(Long userId);
+
+    UserPostsStatsVO getUserPostStatsByUserId(Long userId);
+
+    List<UserPostVO> getUserPostsByUserId(Long userId);
+
+    List<AuthorVO> getAuthorVoByKeyword(String keyword);
 }
 
 

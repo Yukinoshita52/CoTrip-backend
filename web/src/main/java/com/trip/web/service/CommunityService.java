@@ -3,9 +3,7 @@ package com.trip.web.service;
 import com.trip.model.dto.TripDTO;
 import com.trip.model.entity.Post;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.trip.model.vo.FeedPageVO;
-import com.trip.model.vo.PostCreatedVO;
-import com.trip.model.vo.PostDetailVO;
+import com.trip.model.vo.*;
 
 /**
  * ClassName: CommunityService
@@ -26,6 +24,17 @@ public interface CommunityService extends IService<Post> {
      * @param dto
      * @return
      */
-    PostCreatedVO createPost(TripDTO dto);
+    PostCreatedVO createPost(Long userId,TripDTO dto);
 
+    /**
+     *
+     * 根据userId获取用户的信息、以及用户所发布的文章信息
+     * @param userId
+     * @return
+     */
+    UserProfileVO getUserProfile(Long userId);
+
+    SearchPostVO searchMatchPosts(String keyword);
+
+    SearchUserVO searchAuthorByKeyword(String keyword);
 }

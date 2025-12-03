@@ -8,12 +8,18 @@ import lombok.Data;
 
 /**
  * 
- * @TableName post
+ * @TableName book
  */
-@TableName(value ="post")
+@TableName(value ="book")
 @Data
-public class Post extends BaseEntity {
+public class Book extends BaseEntity {
+    /**
+     * ID
+     */
     private Long tripId;
 
-    private Long userId;
+    /**
+     * 
+     */
+    private String name;
 }

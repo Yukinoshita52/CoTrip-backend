@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trip.web.mapper.BookMapper">
+
+    <resultMap id="BaseResultMap" type="com.trip.model.entity.Book">
+            <id property="id" column="id" />
+            <result property="tripId" column="trip_id" />
+            <result property="name" column="name" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,trip_id,user_id,name,create_time,update_time,
+        is_deleted
+    </sql>
+
+
+    <select id="getAccountBookByUserId" resultType="com.trip.model.dto.AccountBookDetailDTO">
+        select book.id                           as bookId,
+               book.name,
+               book.trip_id                      as tripId,
+               SUM(account_book_record.amount) as totalAmount,
+               account_book_record.type
+        from book
+                 join account_book_record
+                      on book.id = account_book_record.book_id and account_book_record.user_id = #{userId}
+        where book.is_deleted = 0
+          and account_book_record.is_deleted = 0
+        group by book.id, book.name, book.trip_id, account_book_record.type
+    </select>
+</mapper>

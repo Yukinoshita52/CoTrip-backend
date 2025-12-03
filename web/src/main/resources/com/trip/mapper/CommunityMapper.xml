@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trip.web.mapper.CommunityMapper">
+
+    <resultMap id="getPostsByKeyWordMap" type="com.trip.model.vo.SearchPostVO$SearchItemVO">
+        <id property="postId" column="postId"/>
+        <result property="tripName" column="tripName"/>
+        <result property="region" column="region"/>
+
+        <collection property="coverImages" ofType="string">
+            <result column="coverImages"/>
+        </collection>
+    </resultMap>
+    <select id="getPostsByKeyWord" resultMap="getPostsByKeyWordMap">
+        select post.id as postId, trip.name as tripName, trip.region, graph_info.url as coverImages
+        from post
+                 join trip on post.trip_id = trip.id
+                 join graph_info on trip.id = graph_info.item_id and item_type = 2
+        where trip.name like CONCAT('%', #{keyword}, '%')
+    </select>
+</mapper>

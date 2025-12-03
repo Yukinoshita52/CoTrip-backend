@@ -1,6 +1,7 @@
 package com.trip.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.util.Date;
@@ -16,6 +17,7 @@ import java.util.List;
  * @Version 1.0
  */
 @Data
+@JsonInclude(JsonInclude.Include.NON_EMPTY) //当字段不为null时才返回json
 public class CommentVO {
     private Long commentId;
     private AuthorVO user;
