@@ -19,4 +19,6 @@ public class TripUpdateDTO {
     private String description;
 
     private String region;
+    
+    private String coverImageUrl;
 }

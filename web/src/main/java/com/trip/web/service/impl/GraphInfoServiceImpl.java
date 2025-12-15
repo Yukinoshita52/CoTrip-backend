@@ -114,4 +114,57 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
             log.error("删除 MinIO 对象失败");
         }
     }
+
+    @Override
+    public String getTripCoverImageUrl(Long tripId) {
+        // 查询行程封面图片 (itemType=2表示行程图片)
+        GraphInfo graphInfo = this.lambdaQuery()
+                .eq(GraphInfo::getItemType, 2)
+                .eq(GraphInfo::getItemId, tripId)
+                .eq(GraphInfo::getIsDeleted, 0)
+                .orderByDesc(GraphInfo::getCreateTime)
+                .last("LIMIT 1")
+                .one();
+        
+        if (graphInfo == null) {
+            return null;
+        }
+        
+        // 检查存储的是完整URL还是对象路径
+        String storedUrl = graphInfo.getUrl();
+        if (storedUrl.startsWith("http")) {
+            // 如果是完整URL，直接返回
+            return storedUrl;
+        } else {
+            // 如果是对象路径，生成预签名URL
+            return getImageUrlById(graphInfo.getId());
+        }
+    }
+
+    @Override
+    public Long setTripCoverImage(Long tripId, String imageUrl) {
+        // 先删除旧的封面图片
+        deleteTripCoverImage(tripId);
+        
+        // 创建新的图片记录，直接存储URL
+        GraphInfo gi = new GraphInfo();
+        gi.setName("trip_cover_" + tripId);
+        gi.setItemType(2); // 行程图片
+        gi.setItemId(tripId);
+        gi.setUrl(imageUrl); // 直接存储URL
+        this.save(gi);
+        
+        return gi.getId();
+    }
+
+    @Override
+    public void deleteTripCoverImage(Long tripId) {
+        // 软删除所有该行程的封面图片
+        this.lambdaUpdate()
+                .eq(GraphInfo::getItemType, 2)
+                .eq(GraphInfo::getItemId, tripId)
+                .eq(GraphInfo::getIsDeleted, 0)
+                .set(GraphInfo::getIsDeleted, 1)
+                .update();
+    }
 }

@@ -21,6 +21,8 @@ public class TripVO {
     private String description;
 
     private String region;
+    
+    private String coverImageUrl;
 
     private Date createdTime;
 }

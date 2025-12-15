@@ -24,5 +24,7 @@ public class TripCreateDTO {
     private String description;
 
     private String region;
+    
+    private String coverImageUrl;
 }
 

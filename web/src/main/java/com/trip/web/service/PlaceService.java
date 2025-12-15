@@ -19,4 +19,11 @@ public interface PlaceService extends IService<Place> {
     List<SuggestionDTO> getSuggestions(String query, Long tripId);
     PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO);
     PlaceDetailVO getPlaceDetails(Long placeId);
+    
+    /**
+     * 更新地点类型
+     * @param placeId 地点ID
+     * @param typeId 新的类型ID
+     */
+    void updatePlaceType(Long placeId, Integer typeId);
 }

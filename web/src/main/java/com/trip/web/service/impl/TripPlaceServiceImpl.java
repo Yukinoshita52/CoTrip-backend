@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.model.entity.TripPlace;
 import com.trip.web.service.TripPlaceService;
+import com.trip.web.service.PlaceService;
 import com.trip.web.mapper.TripPlaceMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,8 +18,11 @@ import java.util.List;
 * @createDate 2025-10-05 23:38:17
 */
 @Service
+@RequiredArgsConstructor
 public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace>
     implements TripPlaceService{
+
+    private final PlaceService placeService;
 
     @Override
     public void deletePlace(Long tripId, Long placeId){
@@ -43,6 +48,24 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
                 tripPlace.setSequence(i + 1); // sequence从1开始
                 this.updateById(tripPlace);
             }
+        }
+    }
+
+    @Override
+    public void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId) {
+        // 更新TripPlace表中的day字段
+        TripPlace tripPlace = this.getOne(new LambdaQueryWrapper<TripPlace>()
+                .eq(TripPlace::getTripId, tripId)
+                .eq(TripPlace::getPlaceId, placeId));
+        
+        if (tripPlace != null) {
+            tripPlace.setDay(day);
+            this.updateById(tripPlace);
+        }
+
+        // 如果提供了typeId，更新Place表中的typeId字段
+        if (typeId != null) {
+            placeService.updatePlaceType(placeId, typeId);
         }
     }
 

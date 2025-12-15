@@ -5,6 +5,7 @@ import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.dto.InvitationCreateDTO;
 import com.trip.model.dto.PlaceBatchImportDTO;
+import com.trip.model.dto.PlaceUpdateDTO;
 import com.trip.model.dto.TripUpdateDTO;
 import com.trip.model.vo.InvitationVO;
 import com.trip.model.vo.PlaceCreateVO;
@@ -125,6 +126,16 @@ public class TripController {
     @DeleteMapping("/places/{placeId}")
     public Result<Void> deletePlace(@PathVariable Long tripId, @PathVariable Long placeId) {
         tripPlaceService.deletePlace(tripId, placeId);
+        return Result.ok();
+    }
+
+    // 更新地点信息
+    @PutMapping("/places/{placeId}")
+    public Result<Void> updatePlace(
+            @PathVariable Long tripId, 
+            @PathVariable Long placeId,
+            @RequestBody @Validated PlaceUpdateDTO dto) {
+        tripPlaceService.updatePlace(tripId, placeId, dto.getDay(), dto.getTypeId());
         return Result.ok();
     }
 

@@ -26,6 +26,7 @@ import com.trip.web.mapper.TripMapper;
 import com.trip.web.mapper.TripPlaceMapper;
 import com.trip.web.mapper.PlaceMapper;
 import com.trip.web.mapper.PostMapper;
+import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.PlaceTypeService;
 import com.trip.web.service.TripService;
 import com.trip.web.service.TripUserService;
@@ -60,13 +61,19 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     private final PlaceMapper placeMapper;
     private final PlaceTypeService placeTypeService;
     private final PostMapper postMapper;
+    private final GraphInfoService graphInfoService;
 
     @Override
     public TripVO createTrip(TripCreateDTO dto, Long creatorId) {
         // 创建行程
         Trip trip = new Trip();
-        BeanUtils.copyProperties(dto, trip);
+        BeanUtils.copyProperties(dto, trip, "coverImageUrl"); // 排除coverImageUrl字段
         this.save(trip);
+
+        // 如果有封面图片URL，保存到图片表
+        if (dto.getCoverImageUrl() != null && !dto.getCoverImageUrl().isEmpty()) {
+            graphInfoService.setTripCoverImage(trip.getId(), dto.getCoverImageUrl());
+        }
 
         // 将创建者添加到行程用户关联表
         tripUserService.addCreator(trip.getId(), creatorId);
@@ -79,6 +86,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         vo.setEndDate(trip.getEndDate());
         vo.setDescription(trip.getDescription());
         vo.setRegion(trip.getRegion());
+        vo.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
         vo.setCreatedTime(trip.getCreateTime());
 
         return vo;
@@ -248,6 +256,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         if (dto.getRegion() != null) {
             trip.setRegion(dto.getRegion());
         }
+        
+        // 处理封面图片更新
+        if (dto.getCoverImageUrl() != null) {
+            if (dto.getCoverImageUrl().isEmpty()) {
+                // 如果传入空字符串，删除封面图片
+                graphInfoService.deleteTripCoverImage(trip.getId());
+            } else {
+                // 更新封面图片
+                graphInfoService.setTripCoverImage(trip.getId(), dto.getCoverImageUrl());
+            }
+        }
 
         this.updateById(trip);
 
@@ -259,6 +278,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         vo.setEndDate(trip.getEndDate());
         vo.setDescription(trip.getDescription());
         vo.setRegion(trip.getRegion());
+        vo.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
         vo.setCreatedTime(trip.getCreateTime());
 
         return vo;
@@ -282,6 +302,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 vo.setEndDate(trip.getEndDate());
                 vo.setDescription(trip.getDescription());
                 vo.setRegion(trip.getRegion());
+                vo.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
                 vo.setCreatedTime(trip.getCreateTime());
                 tripVOList.add(vo);
             }
@@ -313,6 +334,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         detailVO.setEndDate(trip.getEndDate());
         detailVO.setDescription(trip.getDescription());
         detailVO.setRegion(trip.getRegion());
+        detailVO.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
         detailVO.setCreatedTime(trip.getCreateTime());
 
         // 获取地点列表，按天数分组

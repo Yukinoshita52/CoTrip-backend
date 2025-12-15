@@ -12,6 +12,11 @@ public class PlaceCreateDTO {
 
     @NotNull
     private Integer day;
+
+    /**
+     * 地点类型ID（可选）
+     */
+    private Integer typeId;
 }
 
 

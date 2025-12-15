@@ -1,13 +1,19 @@
 package com.trip.model.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class PlaceUpdateDTO {
-    private String name;
-    private String typeCode;
+
+    /**
+     * 天数
+     */
+    @NotNull
     private Integer day;
-    private String notes;
+
+    /**
+     * 地点类型ID（可选）
+     */
+    private Integer typeId;
 }
-
-

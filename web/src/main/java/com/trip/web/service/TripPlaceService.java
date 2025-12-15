@@ -20,4 +20,13 @@ public interface TripPlaceService extends IService<TripPlace> {
      * @param placeIds 地点ID列表（按顺序排列）
      */
     void updatePlaceOrder(Long tripId, List<Long> placeIds);
+
+    /**
+     * 更新地点信息
+     * @param tripId 行程ID
+     * @param placeId 地点ID
+     * @param day 天数
+     * @param typeId 地点类型ID
+     */
+    void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId);
 }

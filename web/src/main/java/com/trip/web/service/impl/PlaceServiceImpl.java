@@ -82,7 +82,10 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
         // 提取字段
         String uid = result.path("uid").asText();
         String name = result.path("name").asText();
-        Integer typeId = placeTypeService.determineTypeId(name);
+        // 使用用户选择的类型ID，如果没有选择则自动判断
+        Integer typeId = placeCreateDTO.getTypeId() != null ? 
+            placeCreateDTO.getTypeId() : 
+            placeTypeService.determineTypeId(name);
         Float lat = (float) result.path("location").path("lat").asDouble();
         Float lng = (float) result.path("location").path("lng").asDouble();
         String address = result.path("address").asText("");
@@ -158,5 +161,14 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
         vo.setDetailInfo(place.getDetailInfo());
 
         return vo;
+    }
+
+    @Override
+    public void updatePlaceType(Long placeId, Integer typeId) {
+        Place place = this.getById(placeId);
+        if (place != null && typeId != null) {
+            place.setTypeId(typeId);
+            this.updateById(place);
+        }
     }
 }
