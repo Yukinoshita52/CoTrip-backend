@@ -3,6 +3,7 @@ package com.trip.model.vo;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 行程 VO
@@ -25,5 +26,10 @@ public class TripVO {
     private String coverImageUrl;
 
     private Date createdTime;
+
+    /**
+     * 成员列表
+     */
+    private List<TripMemberVO> members;
 }
 

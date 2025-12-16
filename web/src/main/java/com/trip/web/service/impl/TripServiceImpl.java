@@ -308,6 +308,29 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 vo.setRegion(trip.getRegion());
                 vo.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
                 vo.setCreatedTime(trip.getCreateTime());
+
+                // 获取成员列表
+                List<TripUser> membersTripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                        .eq(TripUser::getTripId, trip.getId())
+                        .orderByAsc(TripUser::getRole)
+                        .orderByAsc(TripUser::getCreateTime));
+
+                List<TripMemberVO> members = new ArrayList<>();
+                for (TripUser memberTu : membersTripUsers) {
+                    User user = userService.getById(memberTu.getUserId());
+                    if (user != null) {
+                        TripMemberVO memberVO = new TripMemberVO();
+                        memberVO.setUserId(user.getId());
+                        memberVO.setUsername(user.getUsername());
+                        memberVO.setNickname(user.getNickname());
+                        memberVO.setAvatarUrl(graphInfoService.getImageUrlById(user.getAvatarId()));
+                        memberVO.setRole(memberTu.getRole());
+                        memberVO.setJoinedAt(memberTu.getCreateTime());
+                        members.add(memberVO);
+                    }
+                }
+                vo.setMembers(members);
+
                 tripVOList.add(vo);
             }
         }
