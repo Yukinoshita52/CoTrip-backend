@@ -168,7 +168,11 @@ public class TripController {
         if (loginUser == null) {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
-        List<InvitationVO> invitations = invitationService.getSentInvitations(loginUser.getUserId());
-        return Result.ok(invitations);
+        // 获取该用户发出的所有邀请，然后过滤出该行程的邀请
+        List<InvitationVO> allInvitations = invitationService.getSentInvitations(loginUser.getUserId());
+        List<InvitationVO> tripInvitations = allInvitations.stream()
+                .filter(inv -> inv.getTripId().equals(tripId))
+                .collect(java.util.stream.Collectors.toList());
+        return Result.ok(tripInvitations);
     }
 }

@@ -1,6 +1,7 @@
 package com.trip.web.controller;
 
 import com.trip.common.result.Result;
+import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.vo.ImageUrlVO;
 import com.trip.web.service.GraphInfoService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,10 @@ public class ImageController {
     @GetMapping("/{imageId}")
     public Result<ImageUrlVO> getImageUrl(@PathVariable Long imageId) {
         String imageUrl = graphInfoService.getImageUrlById(imageId);
+        
+        if (imageUrl == null) {
+            return Result.fail(ResultCodeEnum.DATA_ERROR.getCode(), "未找到对应的图片信息");
+        }
         
         ImageUrlVO vo = new ImageUrlVO();
         vo.setId(imageId);

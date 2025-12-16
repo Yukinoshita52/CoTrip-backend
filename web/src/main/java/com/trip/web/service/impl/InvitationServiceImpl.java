@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.entity.Invitation;
+import com.trip.model.entity.Trip;
 import com.trip.model.entity.User;
 import com.trip.model.vo.InvitationVO;
 import com.trip.web.mapper.InvitationMapper;
 import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.InvitationService;
+import com.trip.web.service.TripService;
 import com.trip.web.service.TripUserService;
 import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
     private final UserService userService;
     private final GraphInfoService graphInfoService;
     private final TripUserService tripUserService;
+    private final TripService tripService;
 
     @Override
     public List<InvitationVO> getSentInvitations(Long inviterId) {
@@ -43,10 +46,9 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
     @Override
     public List<InvitationVO> getReceivedInvitations(String phone) {
-        // 查询状态为待接受(0)的邀请
+        // 查询所有状态的邀请（包括已接受、已拒绝等）
         List<Invitation> invitations = this.list(new LambdaQueryWrapper<Invitation>()
                 .eq(Invitation::getInvitee, phone)
-                .eq(Invitation::getStatus, 0)
                 .orderByDesc(Invitation::getCreateTime));
 
         return convertToVOList(invitations);
@@ -104,6 +106,12 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
         vo.setInviterPhone(inviter.getPhone());
         vo.setInviterAvatarUrl(graphInfoService.getImageUrlById(inviter.getAvatarId()));
 
+        // 设置行程名称
+        Trip trip = tripService.getById(tripId);
+        if (trip != null) {
+            vo.setTripName(trip.getName());
+        }
+
         // TODO: 发送通知给被邀请人
         
         return vo;
@@ -155,12 +163,23 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
             throw new LeaseException(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限撤销该邀请");
         }
 
-        // 只能撤销待处理的邀请
-        if (invitation.getStatus() != 0) {
-            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "只能撤销待处理的邀请");
+        // 逻辑删除（允许删除任何状态的邀请）
+        this.removeById(invitationId);
+    }
+
+    @Override
+    public void deleteReceivedInvitation(Long invitationId, String inviteePhone) {
+        Invitation invitation = this.getById(invitationId);
+        if (invitation == null) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "邀请不存在");
         }
 
-        // 逻辑删除
+        // 验证权限：只能删除自己收到的邀请
+        if (!invitation.getInvitee().equals(inviteePhone)) {
+            throw new LeaseException(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限删除该邀请");
+        }
+
+        // 逻辑删除（允许删除任何状态的邀请）
         this.removeById(invitationId);
     }
 
@@ -184,6 +203,24 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
                     vo.setInviterNickname(inviter.getNickname());
                     vo.setInviterAvatarUrl(graphInfoService.getImageUrlById(inviter.getAvatarId()));
                     vo.setInviterPhone(inviter.getPhone());
+                }
+            }
+
+            // 查询被邀请人信息
+            if (invitation.getInvitee() != null) {
+                User inviteeUser = userService.getOne(new LambdaQueryWrapper<User>()
+                        .eq(User::getPhone, invitation.getInvitee()));
+                if (inviteeUser != null) {
+                    vo.setInviteeNickname(inviteeUser.getNickname());
+                    vo.setInviteeAvatarUrl(graphInfoService.getImageUrlById(inviteeUser.getAvatarId()));
+                }
+            }
+
+            // 查询行程名称
+            if (invitation.getTripId() != null) {
+                Trip trip = tripService.getById(invitation.getTripId());
+                if (trip != null) {
+                    vo.setTripName(trip.getName());
                 }
             }
 

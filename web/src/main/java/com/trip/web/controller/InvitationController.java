@@ -88,7 +88,7 @@ public class InvitationController {
     }
 
     /**
-     * 撤销邀请
+     * 撤销邀请（发出的邀请）
      * @param invitationId 邀请ID
      * @return 结果
      */
@@ -99,6 +99,28 @@ public class InvitationController {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
         invitationService.cancelInvitation(invitationId, loginUser.getUserId());
+        return Result.ok();
+    }
+
+    /**
+     * 删除收到的邀请
+     * @param invitationId 邀请ID
+     * @return 结果
+     */
+    @DeleteMapping("/received/{invitationId}")
+    public Result<Void> deleteReceivedInvitation(@PathVariable Long invitationId) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        // 获取当前用户手机号
+        var user = userService.getById(loginUser.getUserId());
+        if (user == null || user.getPhone() == null) {
+            return Result.fail(ResultCodeEnum.DATA_ERROR.getCode(), "用户手机号不存在");
+        }
+        
+        invitationService.deleteReceivedInvitation(invitationId, user.getPhone());
         return Result.ok();
     }
 }

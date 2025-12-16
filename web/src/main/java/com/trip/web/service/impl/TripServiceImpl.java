@@ -16,10 +16,12 @@ import com.trip.model.entity.Post;
 import com.trip.model.entity.Trip;
 import com.trip.model.entity.TripPlace;
 import com.trip.model.entity.TripUser;
+import com.trip.model.entity.User;
 import com.trip.model.vo.DayPlacesVO;
 import com.trip.model.vo.PlaceCreateVO;
 import com.trip.model.vo.PlaceInTripVO;
 import com.trip.model.vo.TripDetailVO;
+import com.trip.model.vo.TripMemberVO;
 import com.trip.model.vo.TripVO;
 import com.trip.web.config.LLMClient;
 import com.trip.web.mapper.TripMapper;
@@ -30,6 +32,7 @@ import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.PlaceTypeService;
 import com.trip.web.service.TripService;
 import com.trip.web.service.TripUserService;
+import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -58,6 +61,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     private final PlaceServiceImpl placeService;
     private final TripUserService tripUserService;
     private final TripPlaceMapper tripPlaceMapper;
+    private final UserService userService;
     private final PlaceMapper placeMapper;
     private final PlaceTypeService placeTypeService;
     private final PostMapper postMapper;
@@ -374,6 +378,29 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         }
 
         detailVO.setPlaces(dayPlacesList);
+
+        // 获取成员列表
+        List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .orderByAsc(TripUser::getRole) // 创建者在前
+                .orderByAsc(TripUser::getCreateTime)); // 按加入时间排序
+
+        List<TripMemberVO> members = new ArrayList<>();
+        for (TripUser tu : tripUsers) {
+            User user = userService.getById(tu.getUserId());
+            if (user != null) {
+                TripMemberVO memberVO = new TripMemberVO();
+                memberVO.setUserId(user.getId());
+                memberVO.setUsername(user.getUsername());
+                memberVO.setNickname(user.getNickname());
+                memberVO.setAvatarUrl(graphInfoService.getImageUrlById(user.getAvatarId()));
+                memberVO.setRole(tu.getRole());
+                memberVO.setJoinedAt(tu.getCreateTime());
+                members.add(memberVO);
+            }
+        }
+        detailVO.setMembers(members);
+
         return detailVO;
     }
 

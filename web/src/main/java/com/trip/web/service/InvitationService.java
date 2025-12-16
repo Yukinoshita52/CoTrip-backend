@@ -49,4 +49,11 @@ public interface InvitationService extends IService<Invitation> {
      * @param inviterId 邀请人ID（用于权限验证）
      */
     void cancelInvitation(Long invitationId, Long inviterId);
+
+    /**
+     * 删除收到的邀请
+     * @param invitationId 邀请ID
+     * @param inviteePhone 被邀请人手机号（用于权限验证）
+     */
+    void deleteReceivedInvitation(Long invitationId, String inviteePhone);
 }

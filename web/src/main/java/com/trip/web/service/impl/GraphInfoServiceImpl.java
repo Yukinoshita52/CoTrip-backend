@@ -10,8 +10,8 @@ import io.minio.*;
 import io.minio.http.Method;
 import org.springframework.stereotype.Service;
 import com.trip.common.minio.MinioProperties;
-import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +23,7 @@ import java.util.UUID;
 * @description 针对表【graph_info(图片信息表)】的数据库操作Service实现
 * @createDate 2025-10-05 23:38:16
 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo>
@@ -71,9 +72,14 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
 
     @Override
     public String getImageUrlById(Long graphId) {
+        if (graphId == null) {
+            return null;
+        }
+        
         GraphInfo graph = this.getById(graphId);
         if (graph == null) {
-            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "未找到对应的图片信息");
+            log.warn("未找到对应的图片信息，graphId: " + graphId);
+            return null;
         }
 
         String bucket = StringUtils.hasText(properties.getBucketName()) ? properties.getBucketName() : "cotrip";
@@ -87,8 +93,8 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
                             .build()
             );
         } catch (Exception e) {
-            log.error("获取 MinIO 预签名 URL 失败");
-            throw new LeaseException(ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getCode(), ResultCodeEnum.IMAGE_DOWNLOAD_ERROR.getMessage());
+            log.error("获取 MinIO 预签名 URL 失败", e);
+            return null;
         }
     }
 

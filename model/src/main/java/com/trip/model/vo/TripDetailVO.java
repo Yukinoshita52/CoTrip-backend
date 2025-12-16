@@ -31,5 +31,7 @@ public class TripDetailVO {
      * 地点列表，按天数分组
      */
     private List<DayPlacesVO> places;
+
+    private List<TripMemberVO> members;
 }
 

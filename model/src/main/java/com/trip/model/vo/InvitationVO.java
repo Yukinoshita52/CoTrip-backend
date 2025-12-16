@@ -45,6 +45,16 @@ public class InvitationVO {
     private String invitee;
 
     /**
+     * 被邀请人昵称
+     */
+    private String inviteeNickname;
+
+    /**
+     * 被邀请人头像URL
+     */
+    private String inviteeAvatarUrl;
+
+    /**
      * 邀请状态：0-待接受，1-已接受，2-已拒绝，3-已过期
      */
     private Integer status;
@@ -53,5 +63,10 @@ public class InvitationVO {
      * 发送时间
      */
     private Date sentTime;
+
+    /**
+     * 行程名称
+     */
+    private String tripName;
 }
 
