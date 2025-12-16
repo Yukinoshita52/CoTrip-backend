@@ -387,6 +387,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                     placeInTripVO.setId(place.getId());
                     placeInTripVO.setName(place.getName());
                     placeInTripVO.setType(placeTypeService.getTypeNameById(place.getTypeId()));
+                    placeInTripVO.setTypeId(place.getTypeId());
                     placeInTripVO.setLat(place.getLat());
                     placeInTripVO.setLng(place.getLng());
                     placeInTripVO.setAddress(place.getAddress());

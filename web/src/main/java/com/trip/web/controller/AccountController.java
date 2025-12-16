@@ -52,7 +52,12 @@ public class AccountController {
     @GetMapping("/book/list")
     public Result<List<AccountBookDetailVO>> getAllAccountBooks() {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
+        System.out.println("获取账本列表 - 用户ID: " + loginUser.getUserId());
         List<AccountBookDetailVO> res = accountService.getAllAccountBooks(loginUser.getUserId());
+        System.out.println("返回账本数量: " + res.size());
+        for (AccountBookDetailVO book : res) {
+            System.out.println("账本: ID=" + book.getBookId() + ", 名称=" + book.getName() + ", 行程ID=" + book.getTripId());
+        }
         return Result.ok(res);
     }
 

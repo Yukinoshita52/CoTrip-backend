@@ -83,13 +83,25 @@ public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo
         }
 
         String bucket = StringUtils.hasText(properties.getBucketName()) ? properties.getBucketName() : "cotrip";
+        
+        // 如果启用了公共访问模式，直接构造公共URL
+        if (properties.isPublicAccess()) {
+            String endpoint = properties.getEndpoint();
+            if (endpoint.endsWith("/")) {
+                endpoint = endpoint.substring(0, endpoint.length() - 1);
+            }
+            return endpoint + "/" + bucket + "/" + graph.getUrl();
+        }
+        
+        // 否则使用预签名URL
         try {
+            // 设置7天的有效期，MinIO预签名URL最长支持7天
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
                             .object(graph.getUrl())
-                            .expiry(60 * 60) // 有效期1小时
+                            .expiry(7 * 24 * 60 * 60) // 有效期7天
                             .build()
             );
         } catch (Exception e) {

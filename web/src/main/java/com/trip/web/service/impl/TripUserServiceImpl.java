@@ -6,7 +6,9 @@ import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.entity.TripUser;
 import com.trip.web.mapper.TripUserMapper;
+import com.trip.web.service.AccountService;
 import com.trip.web.service.TripUserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,8 +17,11 @@ import org.springframework.stereotype.Service;
  * @createDate 2025-11-13
  */
 @Service
+@RequiredArgsConstructor
 public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         implements TripUserService {
+        
+    private final AccountService accountService;
 
     @Override
     public void addCreator(Long tripId, Long userId) {
@@ -44,6 +49,9 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         tripUser.setUserId(userId);
         tripUser.setRole(1); // 1-参与者
         this.save(tripUser);
+        
+        // 将新成员添加到该行程的所有账本中
+        accountService.addMemberToTripBooks(tripId, userId);
     }
 
     @Override

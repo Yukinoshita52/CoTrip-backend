@@ -20,16 +20,42 @@
 
 
     <select id="getAccountBookByUserId" resultType="com.trip.model.dto.AccountBookDetailDTO">
-        select book.id                           as bookId,
-               book.name,
-               book.trip_id                      as tripId,
-               SUM(account_book_record.amount) as totalAmount,
-               account_book_record.type
+        select distinct book.id as bookId,
+                        book.name,
+                        book.trip_id as tripId,
+                        COALESCE(income_summary.total_amount, 0) as totalAmount,
+                        1 as type
         from book
-                 join account_book_record
-                      on book.id = account_book_record.book_id and account_book_record.user_id = #{userId}
+                 join book_user on book.id = book_user.book_id
+                 left join (
+                     select book_id, SUM(amount) as total_amount
+                     from account_book_record
+                     where is_deleted = 0 and type = 1
+                     group by book_id
+                 ) income_summary on book.id = income_summary.book_id
         where book.is_deleted = 0
-          and account_book_record.is_deleted = 0
-        group by book.id, book.name, book.trip_id, account_book_record.type
+          and book_user.is_deleted = 0
+          and book_user.user_id = #{userId}
+        
+        union all
+        
+        select distinct book.id as bookId,
+                        book.name,
+                        book.trip_id as tripId,
+                        COALESCE(expense_summary.total_amount, 0) as totalAmount,
+                        2 as type
+        from book
+                 join book_user on book.id = book_user.book_id
+                 left join (
+                     select book_id, SUM(amount) as total_amount
+                     from account_book_record
+                     where is_deleted = 0 and type = 2
+                     group by book_id
+                 ) expense_summary on book.id = expense_summary.book_id
+        where book.is_deleted = 0
+          and book_user.is_deleted = 0
+          and book_user.user_id = #{userId}
+        
+        order by bookId, type
     </select>
 </mapper>

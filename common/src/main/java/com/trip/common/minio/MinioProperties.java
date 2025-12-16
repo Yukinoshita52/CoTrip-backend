@@ -20,4 +20,8 @@ public class MinioProperties {
     private String accessKey;
     private String secretKey;
     private String bucketName;
+    /**
+     * 是否使用公共访问模式（需要桶设置为公共读取）
+     */
+    private boolean publicAccess = false;
 }

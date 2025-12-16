@@ -26,6 +26,11 @@ public class PlaceInTripVO {
     private Integer sequence;
     
     /**
+     * 地点类型ID
+     */
+    private Integer typeId;
+    
+    /**
      * 备注
      */
     private String notes;

@@ -40,4 +40,11 @@ public interface AccountService {
     BookStatsVO getBookStats(Long bookId);
 
     List<PayMemberVO> splitAmount(Long bookId, Long userId);
+    
+    /**
+     * 当新成员加入行程时，将其添加到该行程的所有账本中
+     * @param tripId 行程ID
+     * @param userId 新成员用户ID
+     */
+    void addMemberToTripBooks(Long tripId, Long userId);
 }
