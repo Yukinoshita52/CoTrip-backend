@@ -34,6 +34,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return null;
         }
         UserVO vo = new UserVO();
+        vo.setId(user.getId());
         vo.setUsername(user.getUsername());
         vo.setNickname(user.getNickname());
         vo.setAvatarUrl(graphInfoService.getImageUrlById(user.getAvatarId()));

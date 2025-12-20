@@ -183,15 +183,16 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteTrip(Long tripId, Long userId) {
-        // 验证用户权限（必须是行程的创建者或参与者）
+        // 验证用户权限（必须是行程的创建者或参与者，且未退出行程）
         TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId));
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
         if (tripUser == null) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权删除此行程");
         }
 
-        // 先查询并逻辑删除关联的行程-用户关系
+        // 先查询并逻辑删除关联的行程-用户关系（包括已退出的用户）
         List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId));
         for (TripUser tu : tripUsers) {
@@ -231,10 +232,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public TripVO updateTrip(Long tripId, TripUpdateDTO dto, Long userId) {
-        // 验证用户权限
+        // 验证用户权限（确保用户仍在行程中，未退出）
         TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId));
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
         if (tripUser == null) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改此行程");
         }
@@ -290,9 +292,10 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public List<TripVO> getUserTrips(Long userId) {
-        // 查询用户关联的所有行程
+        // 查询用户关联的所有有效行程（排除已删除的关联关系）
         List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0) // 添加这个条件来排除已退出的行程
                 .orderByDesc(TripUser::getCreateTime));
 
         List<TripVO> tripVOList = new ArrayList<>();
@@ -309,9 +312,10 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 vo.setCoverImageUrl(graphInfoService.getTripCoverImageUrl(trip.getId()));
                 vo.setCreatedTime(trip.getCreateTime());
 
-                // 获取成员列表
+                // 获取成员列表（排除已退出的成员）
                 List<TripUser> membersTripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
                         .eq(TripUser::getTripId, trip.getId())
+                        .eq(TripUser::getIsDeleted, 0) // 添加这个条件来排除已退出的成员
                         .orderByAsc(TripUser::getRole)
                         .orderByAsc(TripUser::getCreateTime));
 
@@ -340,10 +344,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public TripDetailVO getTripDetail(Long tripId, Long userId) {
-        // 验证用户权限
+        // 验证用户权限（确保用户仍在行程中，未退出）
         TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId));
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
         if (tripUser == null) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权查看此行程");
         }
@@ -403,9 +408,10 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
         detailVO.setPlaces(dayPlacesList);
 
-        // 获取成员列表
+        // 获取成员列表（排除已退出的成员）
         List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getIsDeleted, 0) // 添加这个条件来排除已退出的成员
                 .orderByAsc(TripUser::getRole) // 创建者在前
                 .orderByAsc(TripUser::getCreateTime)); // 按加入时间排序
 
@@ -430,10 +436,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public String autoPlanRoute(Long tripId, Long userId) {
-        // 验证用户权限
+        // 验证用户权限（确保用户仍在行程中，未退出）
         TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId));
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
         if (tripUser == null) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权规划此行程");
         }

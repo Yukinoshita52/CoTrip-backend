@@ -14,6 +14,7 @@ import com.trip.model.vo.TripVO;
 import com.trip.web.service.InvitationService;
 import com.trip.web.service.TripPlaceService;
 import com.trip.web.service.TripService;
+import com.trip.web.service.TripUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ import java.util.List;
 public class TripController {
     private final TripService tripService;
     private final TripPlaceService tripPlaceService;
+    private final TripUserService tripUserService;
     private final InvitationService invitationService;
 
     /**
@@ -77,6 +79,22 @@ public class TripController {
         
         TripVO tripVO = tripService.updateTrip(tripId, dto, loginUser.getUserId());
         return Result.ok(tripVO);
+    }
+
+    /**
+     * 退出行程
+     * @param tripId 行程ID
+     * @return 操作结果
+     */
+    @PostMapping("/leave")
+    public Result<Void> leaveTrip(@PathVariable Long tripId) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        
+        tripUserService.removeParticipant(tripId, loginUser.getUserId());
+        return Result.ok();
     }
 
     /**

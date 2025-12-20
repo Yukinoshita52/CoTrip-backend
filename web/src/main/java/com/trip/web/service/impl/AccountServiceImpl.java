@@ -294,6 +294,8 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void addMemberToTripBooks(Long tripId, Long userId) {
+        System.out.println("addMemberToTripBooks: 为用户 " + userId + " 添加行程 " + tripId + " 的账本权限");
+        
         // 1.获取该行程的所有账本
         List<Book> tripBooks = bookMapper.selectList(
             new LambdaQueryWrapper<Book>()
@@ -301,8 +303,12 @@ public class AccountServiceImpl implements AccountService {
                 .eq(Book::getIsDeleted, 0)
         );
         
+        System.out.println("addMemberToTripBooks: 行程 " + tripId + " 有 " + tripBooks.size() + " 个账本");
+        
         // 2.将用户添加到每个账本中
         for (Book book : tripBooks) {
+            System.out.println("addMemberToTripBooks: 处理账本 " + book.getId() + " (" + book.getName() + ")");
+            
             // 检查用户是否已经在账本中
             BookUser existingBookUser = bookUserMapper.selectOne(
                 new LambdaQueryWrapper<BookUser>()
@@ -317,7 +323,51 @@ public class AccountServiceImpl implements AccountService {
                 bookUser.setBookId(book.getId());
                 bookUser.setUserId(userId);
                 bookUserMapper.insert(bookUser);
+                System.out.println("addMemberToTripBooks: 已将用户 " + userId + " 添加到账本 " + book.getId());
+            } else {
+                System.out.println("addMemberToTripBooks: 用户 " + userId + " 已在账本 " + book.getId() + " 中");
             }
         }
+        
+        System.out.println("addMemberToTripBooks: 完成为用户 " + userId + " 添加行程 " + tripId + " 的账本权限");
+    }
+    
+    @Override
+    @Transactional
+    public void removeMemberFromTripBooks(Long tripId, Long userId) {
+        System.out.println("removeMemberFromTripBooks: 为用户 " + userId + " 移除行程 " + tripId + " 的账本权限");
+        
+        // 1.获取该行程的所有账本
+        List<Book> tripBooks = bookMapper.selectList(
+            new LambdaQueryWrapper<Book>()
+                .eq(Book::getTripId, tripId)
+                .eq(Book::getIsDeleted, 0)
+        );
+        
+        System.out.println("removeMemberFromTripBooks: 行程 " + tripId + " 有 " + tripBooks.size() + " 个账本");
+        
+        // 2.将用户从每个账本中移除
+        for (Book book : tripBooks) {
+            System.out.println("removeMemberFromTripBooks: 处理账本 " + book.getId() + " (" + book.getName() + ")");
+            
+            // 查找用户在账本中的记录
+            BookUser bookUser = bookUserMapper.selectOne(
+                new LambdaQueryWrapper<BookUser>()
+                    .eq(BookUser::getBookId, book.getId())
+                    .eq(BookUser::getUserId, userId)
+                    .eq(BookUser::getIsDeleted, 0)
+            );
+            
+            // 如果用户在账本中，则软删除
+            if (bookUser != null) {
+                bookUser.setIsDeleted((byte) 1);
+                bookUserMapper.updateById(bookUser);
+                System.out.println("removeMemberFromTripBooks: 已将用户 " + userId + " 从账本 " + book.getId() + " 中移除");
+            } else {
+                System.out.println("removeMemberFromTripBooks: 用户 " + userId + " 不在账本 " + book.getId() + " 中");
+            }
+        }
+        
+        System.out.println("removeMemberFromTripBooks: 完成为用户 " + userId + " 移除行程 " + tripId + " 的账本权限");
     }
 }

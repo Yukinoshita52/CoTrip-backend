@@ -25,6 +25,13 @@ public interface TripUserService extends IService<TripUser> {
     void addParticipant(Long tripId, Long userId);
 
     /**
+     * 移除行程参与者（退出行程）
+     * @param tripId 行程ID
+     * @param userId 用户ID
+     */
+    void removeParticipant(Long tripId, Long userId);
+
+    /**
      * 检查用户是否已在行程中
      * @param tripId 行程ID
      * @param userId 用户ID

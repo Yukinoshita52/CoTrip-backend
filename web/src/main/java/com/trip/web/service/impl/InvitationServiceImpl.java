@@ -140,13 +140,19 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
         // 如果接受邀请，将用户添加到行程中
         if (action == 1) {
+            System.out.println("processInvitation: 接受邀请 " + invitationId + ", 行程ID: " + invitation.getTripId());
+            
             // 获取被邀请人的用户ID
             User inviteeUser = userService.getOne(new LambdaQueryWrapper<User>()
                     .eq(User::getPhone, invitation.getInvitee()));
             
             if (inviteeUser != null) {
+                System.out.println("processInvitation: 找到被邀请用户 " + inviteeUser.getId() + " (手机号: " + invitation.getInvitee() + ")");
                 // 添加为行程参与者
                 tripUserService.addParticipant(invitation.getTripId(), inviteeUser.getId());
+                System.out.println("processInvitation: 已将用户 " + inviteeUser.getId() + " 添加到行程 " + invitation.getTripId());
+            } else {
+                System.out.println("processInvitation: 未找到手机号为 " + invitation.getInvitee() + " 的用户");
             }
         }
     }

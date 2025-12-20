@@ -47,4 +47,11 @@ public interface AccountService {
      * @param userId 新成员用户ID
      */
     void addMemberToTripBooks(Long tripId, Long userId);
+    
+    /**
+     * 当成员退出行程时，将其从该行程的所有账本中移除
+     * @param tripId 行程ID
+     * @param userId 退出成员用户ID
+     */
+    void removeMemberFromTripBooks(Long tripId, Long userId);
 }
