@@ -12,7 +12,7 @@ import lombok.Data;
  * 地点信息表
  * @TableName place
  */
-@TableName(value ="place")
+@TableName(value = "place", autoResultMap = true)
 @Data
 public class Place extends BaseEntity {
 //    @TableId(type = IdType.AUTO)
@@ -25,6 +25,6 @@ public class Place extends BaseEntity {
     private String address;
     private String telephone;
 
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "detail_info", typeHandler = JacksonTypeHandler.class)
     private DetailInfo detailInfo;
 }
