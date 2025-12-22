@@ -138,6 +138,53 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional
+    public void deleteAccountBook(Long bookId, Long userId) {
+        // 验证用户权限（检查用户是否有权限删除此账本）
+        BookUser bookUser = bookUserMapper.selectOne(
+            new LambdaQueryWrapper<BookUser>()
+                .eq(BookUser::getBookId, bookId)
+                .eq(BookUser::getUserId, userId)
+                .eq(BookUser::getIsDeleted, 0)
+        );
+        
+        if (bookUser == null) {
+            throw new RuntimeException("无权删除此账本");
+        }
+        
+        // 1. 删除账本记录
+        List<AccountBookRecord> records = accountBookRecordMapper.selectList(
+            new LambdaQueryWrapper<AccountBookRecord>()
+                .eq(AccountBookRecord::getBookId, bookId)
+                .eq(AccountBookRecord::getIsDeleted, 0)
+        );
+        
+        for (AccountBookRecord record : records) {
+            record.setIsDeleted((byte) 1);
+            accountBookRecordMapper.updateById(record);
+        }
+        
+        // 2. 删除账本用户关系
+        List<BookUser> bookUsers = bookUserMapper.selectList(
+            new LambdaQueryWrapper<BookUser>()
+                .eq(BookUser::getBookId, bookId)
+                .eq(BookUser::getIsDeleted, 0)
+        );
+        
+        for (BookUser bu : bookUsers) {
+            bu.setIsDeleted((byte) 1);
+            bookUserMapper.updateById(bu);
+        }
+        
+        // 3. 删除账本
+        Book book = bookMapper.selectById(bookId);
+        if (book != null) {
+            book.setIsDeleted((byte) 1);
+            bookMapper.updateById(book);
+        }
+    }
+
+    @Override
     public RecordVO addRecord(Long userId, RecordDTO record) {
         AccountBookRecord accountBookRecord = new AccountBookRecord();
         accountBookRecord.setUserId(userId);

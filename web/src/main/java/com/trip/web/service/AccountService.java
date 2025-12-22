@@ -54,4 +54,11 @@ public interface AccountService {
      * @param userId 退出成员用户ID
      */
     void removeMemberFromTripBooks(Long tripId, Long userId);
+    
+    /**
+     * 删除账本及其相关数据
+     * @param bookId 账本ID
+     * @param userId 用户ID（用于权限验证）
+     */
+    void deleteAccountBook(Long bookId, Long userId);
 }

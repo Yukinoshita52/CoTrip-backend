@@ -11,12 +11,7 @@ import com.trip.model.dto.PlaceCreateDTO;
 import com.trip.model.dto.SuggestionDTO;
 import com.trip.model.dto.TripCreateDTO;
 import com.trip.model.dto.TripUpdateDTO;
-import com.trip.model.entity.Place;
-import com.trip.model.entity.Post;
-import com.trip.model.entity.Trip;
-import com.trip.model.entity.TripPlace;
-import com.trip.model.entity.TripUser;
-import com.trip.model.entity.User;
+import com.trip.model.entity.*;
 import com.trip.model.vo.DayPlacesVO;
 import com.trip.model.vo.PlaceCreateVO;
 import com.trip.model.vo.PlaceInTripVO;
@@ -24,10 +19,7 @@ import com.trip.model.vo.TripDetailVO;
 import com.trip.model.vo.TripMemberVO;
 import com.trip.model.vo.TripVO;
 import com.trip.web.config.LLMClient;
-import com.trip.web.mapper.TripMapper;
-import com.trip.web.mapper.TripPlaceMapper;
-import com.trip.web.mapper.PlaceMapper;
-import com.trip.web.mapper.PostMapper;
+import com.trip.web.mapper.*;
 import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.LLMCacheService;
 import com.trip.web.service.PlaceTypeService;
@@ -70,6 +62,15 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     private final GraphInfoService graphInfoService;
     private final RoutePlanCacheService routePlanCacheService;
     private final LLMCacheService llmCacheService;
+    
+    // 添加必要的Mapper依赖
+    private final BookMapper bookMapper;
+    private final BookUserMapper bookUserMapper;
+    private final AccountBookRecordMapper accountBookRecordMapper;
+    private final CommentMapper commentMapper;
+    private final PostLikeMapper postLikeMapper;
+    private final InvitationMapper invitationMapper;
+    private final GraphInfoMapper graphInfoMapper;
 
     @Override
     public TripVO createTrip(TripCreateDTO dto, Long creatorId) {
@@ -213,17 +214,73 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权删除此行程");
         }
 
-        // 先查询并逻辑删除关联的行程-用户关系（包括已退出的用户）
-        List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
-                .eq(TripUser::getTripId, tripId));
-        for (TripUser tu : tripUsers) {
-            UpdateWrapper<TripUser> updateWrapper = new UpdateWrapper<>();
-            updateWrapper.eq("id", tu.getId())
+        // 1. 先删除账本相关数据（按依赖关系顺序）
+        // 1.1 删除账本记录
+        List<Book> tripBooks = bookMapper.selectList(new LambdaQueryWrapper<Book>()
+                .eq(Book::getTripId, tripId)
+                .eq(Book::getIsDeleted, 0));
+        for (Book book : tripBooks) {
+            // 删除账本记录
+            UpdateWrapper<AccountBookRecord> recordUpdateWrapper = new UpdateWrapper<>();
+            recordUpdateWrapper.eq("book_id", book.getId())
                     .set("is_deleted", 1);
-            tripUserService.update(null, updateWrapper);
+            accountBookRecordMapper.update(null, recordUpdateWrapper);
+            
+            // 删除账本用户关系
+            UpdateWrapper<BookUser> bookUserUpdateWrapper = new UpdateWrapper<>();
+            bookUserUpdateWrapper.eq("book_id", book.getId())
+                    .set("is_deleted", 1);
+            bookUserMapper.update(null, bookUserUpdateWrapper);
+        }
+        
+        // 1.2 删除账本
+        for (Book book : tripBooks) {
+            UpdateWrapper<Book> bookUpdateWrapper = new UpdateWrapper<>();
+            bookUpdateWrapper.eq("id", book.getId())
+                    .set("is_deleted", 1);
+            bookMapper.update(null, bookUpdateWrapper);
         }
 
-        // 逻辑删除关联的行程-地点关系
+        // 2. 删除帖子相关数据
+        List<Post> posts = postMapper.selectList(new LambdaQueryWrapper<Post>()
+                .eq(Post::getTripId, tripId)
+                .eq(Post::getIsDeleted, 0));
+        for (Post post : posts) {
+            // 删除帖子评论
+            UpdateWrapper<Comment> commentUpdateWrapper = new UpdateWrapper<>();
+            commentUpdateWrapper.eq("post_id", post.getId())
+                    .set("is_deleted", 1);
+            commentMapper.update(null, commentUpdateWrapper);
+            
+            // 删除帖子点赞
+            UpdateWrapper<PostLike> likeUpdateWrapper = new UpdateWrapper<>();
+            likeUpdateWrapper.eq("post_id", post.getId())
+                    .set("is_deleted", 1);
+            postLikeMapper.update(null, likeUpdateWrapper);
+        }
+        
+        // 删除帖子
+        for (Post post : posts) {
+            UpdateWrapper<Post> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", post.getId())
+                    .set("is_deleted", 1);
+            postMapper.update(null, updateWrapper);
+        }
+
+        // 3. 删除邀请记录
+        UpdateWrapper<Invitation> invitationUpdateWrapper = new UpdateWrapper<>();
+        invitationUpdateWrapper.eq("trip_id", tripId)
+                .set("is_deleted", 1);
+        invitationMapper.update(null, invitationUpdateWrapper);
+
+        // 4. 删除行程图片
+        UpdateWrapper<GraphInfo> graphUpdateWrapper = new UpdateWrapper<>();
+        graphUpdateWrapper.eq("item_type", 2) // 2表示行程图片
+                .eq("item_id", tripId)
+                .set("is_deleted", 1);
+        graphInfoMapper.update(null, graphUpdateWrapper);
+
+        // 5. 删除行程-地点关系
         List<TripPlace> tripPlaces = tripPlaceMapper.selectList(new LambdaQueryWrapper<TripPlace>()
                 .eq(TripPlace::getTripId, tripId));
         for (TripPlace tp : tripPlaces) {
@@ -233,17 +290,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             tripPlaceMapper.update(null, updateWrapper);
         }
 
-        // 逻辑删除关联的帖子
-        List<Post> posts = postMapper.selectList(new LambdaQueryWrapper<Post>()
-                .eq(Post::getTripId, tripId));
-        for (Post post : posts) {
-            UpdateWrapper<Post> updateWrapper = new UpdateWrapper<>();
-            updateWrapper.eq("id", post.getId())
+        // 6. 删除行程-用户关系（包括已退出的用户）
+        List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId));
+        for (TripUser tu : tripUsers) {
+            UpdateWrapper<TripUser> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", tu.getId())
                     .set("is_deleted", 1);
-            postMapper.update(null, updateWrapper);
+            tripUserService.update(null, updateWrapper);
         }
 
-        // 最后逻辑删除行程
+        // 7. 最后删除行程
         Trip trip = this.getById(tripId);
         if (trip == null) {
             throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "行程不存在");
