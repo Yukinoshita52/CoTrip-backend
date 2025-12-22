@@ -211,12 +211,28 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public RecordPageVO pageRecords(Long bookId, Integer page, Integer size) {
+        System.out.println("AccountServiceImpl.pageRecords: bookId=" + bookId + ", page=" + page + ", size=" + size);
         List<RecordVO> records = accountBookRecordMapper.pageRecords(bookId,(page-1)*size,size);
+        System.out.println("AccountServiceImpl.pageRecords: 查询到 " + records.size() + " 条记录");
+        
+        for (int i = 0; i < records.size(); i++) {
+            RecordVO record = records.get(i);
+            System.out.println("记录 " + (i + 1) + ": recordId=" + record.getRecordId() + 
+                ", note='" + record.getNote() + "', amount=" + record.getAmount() + 
+                ", categoryName=" + record.getCategoryName());
+        }
+        
+        // 获取总记录数
+        LambdaQueryWrapper<AccountBookRecord> countWrapper = new LambdaQueryWrapper<>();
+        countWrapper.eq(AccountBookRecord::getBookId, bookId)
+                   .eq(AccountBookRecord::getIsDeleted, 0);
+        long totalCount = accountBookRecordMapper.selectCount(countWrapper);
+        System.out.println("AccountServiceImpl.pageRecords: 总记录数=" + totalCount);
 
         RecordPageVO res = new RecordPageVO();
         res.setPage(page);
         res.setSize(size);
-        res.setTotal(records.size());
+        res.setTotal((int) totalCount); // 设置正确的总记录数
         res.setLists(records);
         return res;
     }
@@ -232,9 +248,8 @@ public class AccountServiceImpl implements AccountService {
         if(record.getAmount() != null){
             accountBookRecord.setAmount(record.getAmount());
         }
-        if(record.getNote() != null){
-            accountBookRecord.setRemark(record.getNote());
-        }
+        // 始终更新remark字段，允许设置为空字符串
+        accountBookRecord.setRemark(record.getNote());
         if(record.getCategoryId() != null){
             accountBookRecord.setCategoryId(record.getCategoryId());
         }
@@ -319,23 +334,67 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public List<PayMemberVO> splitAmount(Long bookId, Long userId) {
+        // 1. 获取账本中所有成员
         List<MemberPayDTO> memberPays = accountBookRecordMapper.getMemberPays(bookId);
-        int n = memberPays.size();//总人数
-        List<PayMemberVO> res = new ArrayList<>(n-1);
-        for(MemberPayDTO memberPay : memberPays){
-            if(memberPay.getUserId().equals(userId)) continue;//自己不用付自己钱
-
-            PayMemberVO subRes = new PayMemberVO();
-            subRes.setUserId(memberPay.getUserId());
-            subRes.setNickname(memberPay.getNickname());
-            if(memberPay.getExpense() == null){
-                subRes.setShouldPay(BigDecimal.ZERO);
-            }else{
-                subRes.setShouldPay(memberPay.getExpense().divide(new BigDecimal(n),2, RoundingMode.HALF_UP));
-            }
-            res.add(subRes);
+        int totalMembers = memberPays.size(); // 总人数
+        
+        if (totalMembers == 0) {
+            return new ArrayList<>();
         }
-        return res;
+        
+        // 2. 计算总支出（只计算type=1的支出记录）
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        for (MemberPayDTO memberPay : memberPays) {
+            if (memberPay.getExpense() != null) {
+                totalExpense = totalExpense.add(memberPay.getExpense());
+            }
+        }
+        
+        // 3. 计算每人应该承担的金额
+        BigDecimal perPersonAmount = totalExpense.divide(new BigDecimal(totalMembers), 2, RoundingMode.HALF_UP);
+        
+        // 4. 计算当前用户实际支付的金额
+        BigDecimal currentUserPaid = BigDecimal.ZERO;
+        for (MemberPayDTO memberPay : memberPays) {
+            if (memberPay.getUserId().equals(userId) && memberPay.getExpense() != null) {
+                currentUserPaid = memberPay.getExpense();
+                break;
+            }
+        }
+        
+        // 5. 计算分摊结果
+        List<PayMemberVO> result = new ArrayList<>();
+        
+        for (MemberPayDTO memberPay : memberPays) {
+            if (memberPay.getUserId().equals(userId)) {
+                continue; // 跳过自己
+            }
+            
+            PayMemberVO payMemberVO = new PayMemberVO();
+            payMemberVO.setUserId(memberPay.getUserId());
+            payMemberVO.setNickname(memberPay.getNickname());
+            
+            // 计算该成员实际支付的金额
+            BigDecimal memberPaid = memberPay.getExpense() != null ? memberPay.getExpense() : BigDecimal.ZERO;
+            
+            // 最简单直接的逻辑：
+            // 每个人都应该承担 perPersonAmount
+            // 如果该成员支付不足，当前用户需要补贴给该成员
+            // 如果该成员支付过多，该成员需要从当前用户那里收回
+            
+            BigDecimal memberShouldPay = perPersonAmount;
+            BigDecimal memberActuallyPaid = memberPaid;
+            BigDecimal memberDeficit = memberShouldPay.subtract(memberActuallyPaid);
+            
+            // 该成员应该付给当前用户的金额就是该成员的不足部分
+            // 如果为正数，表示该成员欠当前用户钱
+            // 如果为负数，表示当前用户欠该成员钱
+            payMemberVO.setShouldPay(memberDeficit);
+            
+            result.add(payMemberVO);
+        }
+        
+        return result;
     }
     
     @Override
@@ -416,5 +475,52 @@ public class AccountServiceImpl implements AccountService {
         }
         
         System.out.println("removeMemberFromTripBooks: 完成为用户 " + userId + " 移除行程 " + tripId + " 的账本权限");
+    }
+    
+    @Override
+    public BigDecimal getMyExpenseAmount(Long bookId, Long userId) {
+        // 查询用户在指定账本中的支出总金额（只统计type=1的支出记录）
+        List<AccountBookRecord> records = accountBookRecordMapper.selectList(
+            new LambdaQueryWrapper<AccountBookRecord>()
+                .eq(AccountBookRecord::getBookId, bookId)
+                .eq(AccountBookRecord::getUserId, userId)
+                .eq(AccountBookRecord::getType, 1) // 只统计支出
+                .eq(AccountBookRecord::getIsDeleted, 0)
+        );
+        
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (AccountBookRecord record : records) {
+            if (record.getAmount() != null) {
+                totalAmount = totalAmount.add(record.getAmount());
+            }
+        }
+        
+        return totalAmount;
+    }
+    
+    @Override
+    public Integer getMyExpenseCount(Long bookId, Long userId) {
+        // 查询用户在指定账本中的账单数量（只统计type=1的支出记录）
+        Long count = accountBookRecordMapper.selectCount(
+            new LambdaQueryWrapper<AccountBookRecord>()
+                .eq(AccountBookRecord::getBookId, bookId)
+                .eq(AccountBookRecord::getUserId, userId)
+                .eq(AccountBookRecord::getType, 1) // 只统计支出
+                .eq(AccountBookRecord::getIsDeleted, 0)
+        );
+        
+        return count.intValue();
+    }
+    
+    @Override
+    public Integer getTotalMembersCount(Long bookId) {
+        // 查询账本中的总成员数
+        Long count = bookUserMapper.selectCount(
+            new LambdaQueryWrapper<BookUser>()
+                .eq(BookUser::getBookId, bookId)
+                .eq(BookUser::getIsDeleted, 0)
+        );
+        
+        return count.intValue();
     }
 }

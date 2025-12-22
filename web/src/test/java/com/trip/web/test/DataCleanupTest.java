@@ -42,6 +42,72 @@ public class DataCleanupTest {
     }
 
     /**
+     * 检查并修复账单类别数据
+     * 确保所有account_book_record引用的category_id都存在对应的account_book_category记录
+     */
+    @Test
+    public void checkAndFixCategoryData() {
+        log.info("开始检查账单类别数据...");
+        
+        // 1. 查找所有缺失的类别ID
+        String findMissingCategoriesSQL = """
+            SELECT DISTINCT abr.category_id 
+            FROM account_book_record abr 
+            LEFT JOIN account_book_category abc ON abr.category_id = abc.id AND abc.is_deleted = 0
+            WHERE abr.is_deleted = 0 AND abc.id IS NULL
+            """;
+        
+        List<Map<String, Object>> missingCategories = jdbcTemplate.queryForList(findMissingCategoriesSQL);
+        log.info("发现 {} 个缺失的类别ID", missingCategories.size());
+        
+        for (Map<String, Object> row : missingCategories) {
+            Long categoryId = ((Number) row.get("category_id")).longValue();
+            log.info("缺失的类别ID: {}", categoryId);
+            
+            // 2. 为缺失的类别ID创建默认类别记录
+            String insertCategorySQL = """
+                INSERT INTO account_book_category (id, name, icon_id, is_deleted, create_time, update_time) 
+                VALUES (?, '其他', 1, 0, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE is_deleted = 0, update_time = NOW()
+                """;
+            
+            try {
+                jdbcTemplate.update(insertCategorySQL, categoryId);
+                log.info("已创建/修复类别ID: {}", categoryId);
+            } catch (Exception e) {
+                log.error("创建类别ID {} 失败: {}", categoryId, e.getMessage());
+            }
+        }
+        
+        // 3. 验证修复结果
+        List<Map<String, Object>> stillMissingCategories = jdbcTemplate.queryForList(findMissingCategoriesSQL);
+        if (stillMissingCategories.isEmpty()) {
+            log.info("所有类别数据已修复完成！");
+        } else {
+            log.warn("仍有 {} 个类别ID未修复", stillMissingCategories.size());
+        }
+        
+        // 4. 显示所有账单记录的类别信息
+        String checkRecordsSQL = """
+            SELECT abr.id, abr.category_id, abr.remark, abc.name as category_name
+            FROM account_book_record abr 
+            LEFT JOIN account_book_category abc ON abr.category_id = abc.id AND abc.is_deleted = 0
+            WHERE abr.is_deleted = 0
+            ORDER BY abr.id
+            """;
+        
+        List<Map<String, Object>> allRecords = jdbcTemplate.queryForList(checkRecordsSQL);
+        log.info("所有账单记录的类别信息:");
+        for (Map<String, Object> record : allRecords) {
+            log.info("记录ID: {}, 类别ID: {}, 类别名称: {}, 备注: '{}'", 
+                record.get("id"), 
+                record.get("category_id"), 
+                record.get("category_name"),
+                record.get("remark"));
+        }
+    }
+
+    /**
      * 1. 清理trip表
      * 对于每一条trip，都应该有其创建者，也就是在trip_user表中，存在一条记录trip.id = trip_user.trip_id、role=0
      */

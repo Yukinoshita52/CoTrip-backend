@@ -105,11 +105,34 @@ public class AccountController {
     }
 
     @GetMapping("/book/{bookId}/split")
-    public Result<Map<String, List<PayMemberVO>>> splitAmount(@PathVariable Long bookId) {
+    public Result<Map<String, Object>> splitAmount(@PathVariable Long bookId) {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
         List<PayMemberVO> tmpRes = accountService.splitAmount(bookId, loginUser.getUserId());
-        Map<String, List<PayMemberVO>> res = new HashMap<>();
+        
+        // 获取总成员数（包括当前用户）
+        Integer totalMembers = accountService.getTotalMembersCount(bookId);
+        
+        Map<String, Object> res = new HashMap<>();
         res.put("members", tmpRes);
+        res.put("totalMembers", totalMembers);
+        
+        return Result.ok(res);
+    }
+    
+    @GetMapping("/book/{bookId}/my-expense")
+    public Result<Map<String, Object>> getMyExpenseStats(@PathVariable Long bookId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        
+        // 获取我的支出金额
+        java.math.BigDecimal myExpenseAmount = accountService.getMyExpenseAmount(bookId, loginUser.getUserId());
+        
+        // 获取我的账单数量
+        Integer myExpenseCount = accountService.getMyExpenseCount(bookId, loginUser.getUserId());
+        
+        Map<String, Object> res = new HashMap<>();
+        res.put("myExpenseAmount", myExpenseAmount);
+        res.put("myExpenseCount", myExpenseCount);
+        
         return Result.ok(res);
     }
 

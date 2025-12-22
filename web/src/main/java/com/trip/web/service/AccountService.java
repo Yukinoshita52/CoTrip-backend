@@ -61,4 +61,27 @@ public interface AccountService {
      * @param userId 用户ID（用于权限验证）
      */
     void deleteAccountBook(Long bookId, Long userId);
+    
+    /**
+     * 获取用户在指定账本中的支出金额
+     * @param bookId 账本ID
+     * @param userId 用户ID
+     * @return 用户支出金额
+     */
+    java.math.BigDecimal getMyExpenseAmount(Long bookId, Long userId);
+    
+    /**
+     * 获取用户在指定账本中的账单数量
+     * @param bookId 账本ID
+     * @param userId 用户ID
+     * @return 用户账单数量
+     */
+    Integer getMyExpenseCount(Long bookId, Long userId);
+    
+    /**
+     * 获取指定账本的总成员数
+     * @param bookId 账本ID
+     * @return 总成员数
+     */
+    Integer getTotalMembersCount(Long bookId);
 }
