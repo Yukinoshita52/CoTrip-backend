@@ -46,7 +46,9 @@ public enum ResultCodeEnum {
     APP_ORIGINAL_PASSWORD_ERROR(511, "原密码错误"),
 
     TOKEN_EXPIRED(601, "token过期"),
-    TOKEN_INVALID(602, "token非法");
+    TOKEN_INVALID(602, "token非法"),
+
+    CACHE_EXCEPTION(700,"缓存相关报错");
 
 
     private final Integer code;

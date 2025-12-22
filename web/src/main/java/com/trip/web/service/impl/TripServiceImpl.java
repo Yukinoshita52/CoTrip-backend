@@ -29,7 +29,9 @@ import com.trip.web.mapper.TripPlaceMapper;
 import com.trip.web.mapper.PlaceMapper;
 import com.trip.web.mapper.PostMapper;
 import com.trip.web.service.GraphInfoService;
+import com.trip.web.service.LLMCacheService;
 import com.trip.web.service.PlaceTypeService;
+import com.trip.web.service.RoutePlanCacheService;
 import com.trip.web.service.TripService;
 import com.trip.web.service.TripUserService;
 import com.trip.web.service.UserService;
@@ -66,6 +68,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     private final PlaceTypeService placeTypeService;
     private final PostMapper postMapper;
     private final GraphInfoService graphInfoService;
+    private final RoutePlanCacheService routePlanCacheService;
+    private final LLMCacheService llmCacheService;
 
     @Override
     public TripVO createTrip(TripCreateDTO dto, Long creatorId) {
@@ -117,10 +121,27 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             %s
         """.formatted(text);
 
-        String response = llmClient.chat(prompt);
-        if (response == null || response.isEmpty()) {
-            log.warn("LLM 未返回解析结果");
-            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "导入地点失败");
+        // 生成缓存键
+        String cacheKey = llmCacheService.generateCacheKey("place_import", text);
+        
+        // 尝试从缓存获取LLM响应
+        String response = llmCacheService.getLLMResponse(cacheKey);
+        
+        if (response == null) {
+            // 缓存未命中，调用LLM
+            log.info("地点导入缓存未命中，调用LLM: cacheKey={}", cacheKey);
+            
+            response = llmClient.chat(prompt);
+            if (response == null || response.isEmpty()) {
+                log.warn("LLM 未返回解析结果");
+                throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "导入地点失败");
+            }
+            
+            // 缓存LLM响应
+            llmCacheService.cacheLLMResponse(cacheKey, response);
+            log.info("地点导入LLM调用完成并已缓存: cacheKey={}", cacheKey);
+        } else {
+            log.info("使用缓存的地点导入结果: cacheKey={}", cacheKey);
         }
 
         List<String> placeNames = new ArrayList<>();
@@ -460,77 +481,145 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "行程不存在");
         }
 
-        // 构建地点信息
+        // 构建地点信息和地点ID列表
         StringBuilder placesInfo = new StringBuilder();
+        List<Long> placeIds = new ArrayList<>();
         for (TripPlace tp : unplannedPlaces) {
             Place place = placeMapper.selectById(tp.getPlaceId());
             if (place != null) {
                 placesInfo.append(place.getName()).append("(")
                         .append(place.getLat()).append(",").append(place.getLng()).append(");");
+                placeIds.add(place.getId());
             }
         }
 
-        // 调用LLM进行路线规划
-        String prompt = String.format("""
-            请帮我规划一个旅行路线。以下是行程信息：
-            - 行程名称：%s
-            - 开始日期：%s
-            - 结束日期：%s
-            - 目的地：%s
-            
-            以下是需要规划的地点列表（格式：地点名(纬度,经度)）：
-            %s
-            
-            请根据这些地点，规划合理的行程安排，将每个地点分配到合适的天数（第1天、第2天等）。
-            返回JSON格式，格式如下：
-            [
-              {"placeId": 1, "day": 1, "sequence": 1},
-              {"placeId": 2, "day": 1, "sequence": 2},
-              ...
-            ]
-            
-            注意：
-            1. day从1开始，表示第几天
-            2. sequence表示同一天内的顺序
-            3. 请合理分配，考虑地理位置和时间安排
-            """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(), placesInfo.toString());
+        // 计算行程天数
+        int tripDays = 1;
+        if (trip.getStartDate() != null && trip.getEndDate() != null) {
+            long diffInMillies = trip.getEndDate().getTime() - trip.getStartDate().getTime();
+            tripDays = Math.max(1, (int) (diffInMillies / (1000 * 60 * 60 * 24)) + 1);
+        }
 
-        try {
-            String response = llmClient.chat(prompt);
-            if (response == null || response.isEmpty()) {
-                throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "路线规划失败");
+        // 生成缓存键
+        String cacheKey = routePlanCacheService.generateCacheKey(placesInfo.toString(), tripDays);
+        
+        // 尝试从缓存获取路径规划结果
+        String cachedRoutePlan = routePlanCacheService.getRoutePlan(cacheKey);
+        String routePlanJson = null;
+        
+        if (cachedRoutePlan != null && routePlanCacheService.isValidRoutePlan(cachedRoutePlan, placeIds)) {
+            // 缓存命中且有效
+            routePlanJson = cachedRoutePlan;
+            log.info("使用缓存的路径规划结果: tripId={}, cacheKey={}", tripId, cacheKey);
+        } else {
+            // 缓存未命中或无效，调用LLM进行路线规划
+            log.info("缓存未命中，调用LLM进行路径规划: tripId={}, cacheKey={}", tripId, cacheKey);
+            
+            String prompt = String.format("""
+                请帮我规划一个旅行路线。以下是行程信息：
+                - 行程名称：%s
+                - 开始日期：%s
+                - 结束日期：%s
+                - 目的地：%s
+                - 行程天数：%d天
+                
+                以下是需要规划的地点列表（格式：地点名(纬度,经度)）：
+                %s
+                
+                请根据这些地点，规划合理的行程安排，将每个地点分配到合适的天数（第1天、第2天等）。
+                返回JSON格式，格式如下：
+                [
+                  {"placeId": 1, "day": 1, "sequence": 1},
+                  {"placeId": 2, "day": 1, "sequence": 2},
+                  ...
+                ]
+                
+                注意：
+                1. day从1开始，表示第几天，最大不超过%d天
+                2. sequence表示同一天内的顺序
+                3. 请合理分配，考虑地理位置和时间安排
+                4. 每个地点都必须分配到某一天
+                """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(), 
+                tripDays, placesInfo.toString(), tripDays);
+
+            try {
+                String response = llmClient.chat(prompt);
+                if (response == null || response.isEmpty()) {
+                    throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "路线规划失败");
+                }
+                
+                // 提取JSON部分（去除可能的额外文本）
+                routePlanJson = extractJsonFromResponse(response);
+                
+                // 验证JSON格式
+                JsonNode testNode = new ObjectMapper().readTree(routePlanJson);
+                if (!testNode.isArray()) {
+                    throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "LLM返回的路线规划格式无效");
+                }
+                
+                // 缓存结果
+                routePlanCacheService.cacheRoutePlan(cacheKey, routePlanJson);
+                log.info("LLM路径规划完成并已缓存: tripId={}, cacheKey={}", tripId, cacheKey);
+                
+            } catch (Exception e) {
+                log.error("LLM路线规划失败: tripId={}", tripId, e);
+                throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "路线规划失败：" + e.getMessage());
             }
+        }
 
-            // 解析JSON并更新地点分配
-            JsonNode node = new ObjectMapper().readTree(response);
-            if (node.isArray()) {
-                for (JsonNode item : node) {
-                    Long placeId = item.path("placeId").asLong();
-                    Integer day = item.path("day").asInt();
-                    Integer sequence = item.path("sequence").asInt();
+        // 应用路径规划结果
+        try {
+            JsonNode node = new ObjectMapper().readTree(routePlanJson);
+            int updatedCount = 0;
+            
+            for (JsonNode item : node) {
+                Long placeId = item.path("placeId").asLong();
+                Integer day = item.path("day").asInt();
+                Integer sequence = item.path("sequence").asInt();
 
-                    // 查找对应的TripPlace记录
-                    TripPlace existingTp = tripPlaceMapper.selectOne(new LambdaQueryWrapper<TripPlace>()
-                            .eq(TripPlace::getTripId, tripId)
-                            .eq(TripPlace::getPlaceId, placeId)
-                            .eq(TripPlace::getDay, 0));
-                    
-                    if (existingTp != null) {
-                        // 更新TripPlace
-                        TripPlace updateTp = new TripPlace();
-                        updateTp.setId(existingTp.getId());
-                        updateTp.setDay(day);
-                        updateTp.setSequence(sequence);
-                        tripPlaceMapper.updateById(updateTp);
-                    }
+                // 查找对应的TripPlace记录
+                TripPlace existingTp = tripPlaceMapper.selectOne(new LambdaQueryWrapper<TripPlace>()
+                        .eq(TripPlace::getTripId, tripId)
+                        .eq(TripPlace::getPlaceId, placeId)
+                        .eq(TripPlace::getDay, 0));
+                
+                if (existingTp != null) {
+                    // 更新TripPlace
+                    TripPlace updateTp = new TripPlace();
+                    updateTp.setId(existingTp.getId());
+                    updateTp.setDay(day);
+                    updateTp.setSequence(sequence);
+                    tripPlaceMapper.updateById(updateTp);
+                    updatedCount++;
                 }
             }
-
-            return "路线规划完成";
+            
+            log.info("路径规划应用完成: tripId={}, 更新了{}个地点", tripId, updatedCount);
+            return String.format("路线规划完成，共安排了%d个地点", updatedCount);
+            
         } catch (Exception e) {
-            log.error("一键规划失败", e);
-            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "路线规划失败：" + e.getMessage());
+            log.error("应用路径规划结果失败: tripId={}", tripId, e);
+            throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "应用路线规划失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 从LLM响应中提取JSON部分
+     * 
+     * @param response LLM的完整响应
+     * @return 提取的JSON字符串
+     */
+    private String extractJsonFromResponse(String response) {
+        // 查找JSON数组的开始和结束
+        int startIndex = response.indexOf('[');
+        int endIndex = response.lastIndexOf(']');
+        
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+            return response.substring(startIndex, endIndex + 1);
+        }
+        
+        // 如果没找到数组格式，返回原始响应
+        return response.trim();
     }
 }
 

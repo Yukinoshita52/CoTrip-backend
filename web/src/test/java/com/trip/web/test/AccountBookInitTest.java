@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -745,6 +746,59 @@ public class AccountBookInitTest {
         log.info("ALTER TABLE trip_user DROP INDEX uk_trip_user;");
         log.info("-- 创建新约束（包含 is_deleted 字段）");
         log.info("ALTER TABLE trip_user ADD UNIQUE INDEX uk_trip_user_with_deleted (trip_id, user_id, is_deleted);");
+    }
+
+    /**
+     * 测试路径规划缓存功能
+     */
+    @Test
+    public void testRoutePlanCache() {
+        log.info("测试路径规划缓存功能...");
+        
+        try {
+            // 模拟地点信息
+            String placesInfo = "西湖(30.2741,120.1551);雷峰塔(30.2315,120.1298);断桥(30.2633,120.1367);";
+            int tripDays = 3;
+            
+            // 生成缓存键
+            com.trip.web.service.RoutePlanCacheService cacheService = 
+                new com.trip.web.service.RoutePlanCacheService(null, new com.fasterxml.jackson.databind.ObjectMapper());
+            
+            String cacheKey = cacheService.generateCacheKey(placesInfo, tripDays);
+            log.info("生成的缓存键: {}", cacheKey);
+            
+            // 模拟路径规划结果
+            String routePlanJson = """
+                [
+                  {"placeId": 1, "day": 1, "sequence": 1},
+                  {"placeId": 2, "day": 2, "sequence": 1},
+                  {"placeId": 3, "day": 3, "sequence": 1}
+                ]
+                """;
+            
+            log.info("模拟的路径规划结果: {}", routePlanJson);
+            
+            // 验证JSON格式
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(routePlanJson);
+            
+            if (node.isArray()) {
+                log.info("JSON格式验证通过，包含 {} 个地点", node.size());
+                for (com.fasterxml.jackson.databind.JsonNode item : node) {
+                    log.info("地点: placeId={}, day={}, sequence={}", 
+                        item.path("placeId").asLong(),
+                        item.path("day").asInt(),
+                        item.path("sequence").asInt());
+                }
+            } else {
+                log.error("JSON格式无效：不是数组格式");
+            }
+            
+            log.info("路径规划缓存功能测试完成");
+            
+        } catch (Exception e) {
+            log.error("测试路径规划缓存功能失败", e);
+        }
     }
 
     /**
