@@ -377,9 +377,43 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 .eq(TripUser::getIsDeleted, 0) // 添加这个条件来排除已退出的行程
                 .orderByDesc(TripUser::getCreateTime));
 
+        // 批量查询所有行程，避免N+1查询
+        List<Long> tripIds = tripUsers.stream()
+                .map(TripUser::getTripId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Trip> tripMap = new java.util.HashMap<>();
+        if (!tripIds.isEmpty()) {
+            List<Trip> trips = this.listByIds(tripIds);
+            tripMap = trips.stream()
+                    .collect(Collectors.toMap(Trip::getId, t -> t));
+        }
+
+        // 批量查询所有行程的成员，避免N+1查询
+        List<TripUser> allMembersTripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                .in(TripUser::getTripId, tripIds)
+                .eq(TripUser::getIsDeleted, 0)
+                .orderByAsc(TripUser::getTripId)
+                .orderByAsc(TripUser::getRole)
+                .orderByAsc(TripUser::getCreateTime));
+        Map<Long, List<TripUser>> membersByTripId = allMembersTripUsers.stream()
+                .collect(Collectors.groupingBy(TripUser::getTripId));
+
+        // 批量查询所有用户，避免N+1查询
+        List<Long> allUserIds = allMembersTripUsers.stream()
+                .map(TripUser::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> userMap = new java.util.HashMap<>();
+        if (!allUserIds.isEmpty()) {
+            List<User> users = userService.listByIds(allUserIds);
+            userMap = users.stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+        }
+
         List<TripVO> tripVOList = new ArrayList<>();
         for (TripUser tu : tripUsers) {
-            Trip trip = this.getById(tu.getTripId());
+            Trip trip = tripMap.get(tu.getTripId());
             if (trip != null) {
                 TripVO vo = new TripVO();
                 vo.setTripId(trip.getId());
@@ -392,15 +426,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 vo.setCreatedTime(trip.getCreateTime());
 
                 // 获取成员列表（排除已退出的成员）
-                List<TripUser> membersTripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
-                        .eq(TripUser::getTripId, trip.getId())
-                        .eq(TripUser::getIsDeleted, 0) // 添加这个条件来排除已退出的成员
-                        .orderByAsc(TripUser::getRole)
-                        .orderByAsc(TripUser::getCreateTime));
+                List<TripUser> membersTripUsers = membersByTripId.getOrDefault(trip.getId(), new ArrayList<>());
 
                 List<TripMemberVO> members = new ArrayList<>();
                 for (TripUser memberTu : membersTripUsers) {
-                    User user = userService.getById(memberTu.getUserId());
+                    User user = userMap.get(memberTu.getUserId());
                     if (user != null) {
                         TripMemberVO memberVO = new TripMemberVO();
                         memberVO.setUserId(user.getId());
@@ -454,6 +484,34 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 .orderByAsc(TripPlace::getDay)
                 .orderByAsc(TripPlace::getSequence));
 
+        // 批量查询所有地点，避免N+1查询
+        List<Long> placeIds = tripPlaces.stream()
+                .map(TripPlace::getPlaceId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Place> placeMap = new java.util.HashMap<>();
+        if (!placeIds.isEmpty()) {
+            List<Place> places = placeMapper.selectBatchIds(placeIds);
+            placeMap = places.stream()
+                    .collect(Collectors.toMap(Place::getId, p -> p));
+        }
+
+        // 批量查询所有地点类型，避免N+1查询
+        List<Integer> typeIds = placeMap.values().stream()
+                .map(Place::getTypeId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Integer, String> typeNameMap = new java.util.HashMap<>();
+        if (!typeIds.isEmpty()) {
+            for (Integer typeId : typeIds) {
+                String typeName = placeTypeService.getTypeNameById(typeId);
+                if (typeName != null) {
+                    typeNameMap.put(typeId, typeName);
+                }
+            }
+        }
+
         // 按天数分组
         Map<Integer, List<TripPlace>> placesByDay = tripPlaces.stream()
                 .collect(Collectors.groupingBy(TripPlace::getDay));
@@ -465,12 +523,12 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
             List<PlaceInTripVO> placeInTripList = new ArrayList<>();
             for (TripPlace tp : entry.getValue()) {
-                Place place = placeMapper.selectById(tp.getPlaceId());
+                Place place = placeMap.get(tp.getPlaceId());
                 if (place != null) {
                     PlaceInTripVO placeInTripVO = new PlaceInTripVO();
                     placeInTripVO.setId(place.getId());
                     placeInTripVO.setName(place.getName());
-                    placeInTripVO.setType(placeTypeService.getTypeNameById(place.getTypeId()));
+                    placeInTripVO.setType(typeNameMap.getOrDefault(place.getTypeId(), ""));
                     placeInTripVO.setTypeId(place.getTypeId());
                     placeInTripVO.setLat(place.getLat());
                     placeInTripVO.setLng(place.getLng());
@@ -494,9 +552,21 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 .orderByAsc(TripUser::getRole) // 创建者在前
                 .orderByAsc(TripUser::getCreateTime)); // 按加入时间排序
 
+        // 批量查询所有用户，避免N+1查询
+        List<Long> userIds = tripUsers.stream()
+                .map(TripUser::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> userMap = new java.util.HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<User> users = userService.listByIds(userIds);
+            userMap = users.stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+        }
+
         List<TripMemberVO> members = new ArrayList<>();
         for (TripUser tu : tripUsers) {
-            User user = userService.getById(tu.getUserId());
+            User user = userMap.get(tu.getUserId());
             if (user != null) {
                 TripMemberVO memberVO = new TripMemberVO();
                 memberVO.setUserId(user.getId());
