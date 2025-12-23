@@ -14,6 +14,7 @@ import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostViewService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implements CommunityService {
 
     @Resource
@@ -313,6 +315,23 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         res.setKeyword(keyword);
         res.setUsers(users);
         return res;
+    }
+
+    @Override
+    public List<Long> getUserSharedTripIds(Long userId) {
+        // 查询用户已分享的帖子，获取对应的行程ID
+        LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Post::getUserId, userId)
+               .eq(Post::getIsDeleted, 0)
+               .select(Post::getTripId);
+        
+        List<Post> posts = this.list(wrapper);
+        List<Long> tripIds = posts.stream()
+                   .map(Post::getTripId)
+                   .collect(Collectors.toList());
+        
+        log.info("用户 {} 已分享的行程ID: {}", userId, tripIds);
+        return tripIds;
     }
 }
 

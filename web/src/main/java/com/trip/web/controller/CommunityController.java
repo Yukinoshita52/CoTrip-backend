@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * ClassName: CommunityController
  * Package: com.trip.web.controller
@@ -202,5 +204,35 @@ public class CommunityController {
     public Result<SearchUserVO> searchUsers(@RequestParam String keyword) {
         SearchUserVO res = communityService.searchAuthorByKeyword(keyword);
         return Result.ok(res);
+    }
+
+    // 8.3 获取当前用户已分享的行程ID列表
+    @GetMapping("/my-shared-trips")
+    public Result<List<Long>> getMySharedTripIds() {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        Long userId = loginUser.getUserId();
+        System.out.println("获取用户 " + userId + " 的已分享行程ID");
+        
+        List<Long> sharedTripIds = communityService.getUserSharedTripIds(userId);
+        System.out.println("返回已分享行程ID: " + sharedTripIds);
+        
+        return Result.ok(sharedTripIds);
+    }
+
+    // 临时调试接口：获取用户行程数据结构
+    @GetMapping("/debug/my-trips")
+    public Result<Object> debugMyTrips() {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        // 这里需要调用 TripService 来获取用户的行程
+        // 由于我们没有直接的 TripService 引用，我们返回一个提示
+        return Result.ok("请检查 /api/trips 接口返回的数据结构");
     }
 }

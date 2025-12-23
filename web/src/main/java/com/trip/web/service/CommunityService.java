@@ -5,6 +5,8 @@ import com.trip.model.entity.Post;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.trip.model.vo.*;
 
+import java.util.List;
+
 /**
  * ClassName: CommunityService
  * Package: com.trip.web.service
@@ -35,6 +37,13 @@ public interface CommunityService extends IService<Post> {
      * @return
      */
     UserProfileVO getUserProfile(Long userId);
+
+    /**
+     * 获取当前用户已分享的行程ID列表
+     * @param userId 用户ID
+     * @return 已分享的行程ID列表
+     */
+    List<Long> getUserSharedTripIds(Long userId);
 
     SearchPostVO searchMatchPosts(String keyword);
 
