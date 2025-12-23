@@ -40,6 +40,7 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
     private final PlaceTypeService placeTypeService;
     private final TripMapper tripMapper;
     private final TripPlaceMapper tripPlaceMapper;
+    private final com.trip.web.service.TripUserService tripUserService;
 
     @Override
     @Cacheable(
@@ -72,7 +73,12 @@ public class PlaceServiceImpl extends ServiceImpl<PlaceMapper, Place>
     }
 
     @Override
-    public PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO) {
+    public PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO, Long userId) {
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
+            throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权添加地点");
+        }
+        
         JsonNode result = baiduMapService.getPlaceDetail(placeCreateDTO.getUid()).block();
         if (result == null || result.isMissingNode()) {
             log.warn("未获取到地点详情");

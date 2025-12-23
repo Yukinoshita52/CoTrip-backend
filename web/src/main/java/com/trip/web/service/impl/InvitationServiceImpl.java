@@ -9,9 +9,9 @@ import com.trip.model.entity.Trip;
 import com.trip.model.entity.User;
 import com.trip.model.vo.InvitationVO;
 import com.trip.web.mapper.InvitationMapper;
+import com.trip.web.mapper.TripMapper;
 import com.trip.web.service.GraphInfoService;
 import com.trip.web.service.InvitationService;
-import com.trip.web.service.TripService;
 import com.trip.web.service.TripUserService;
 import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
     private final UserService userService;
     private final GraphInfoService graphInfoService;
     private final TripUserService tripUserService;
-    private final TripService tripService;
+    private final TripMapper tripMapper;
 
     @Override
     public List<InvitationVO> getSentInvitations(Long inviterId) {
@@ -107,7 +107,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
         vo.setInviterAvatarUrl(graphInfoService.getImageUrlById(inviter.getAvatarId()));
 
         // 设置行程名称
-        Trip trip = tripService.getById(tripId);
+        Trip trip = tripMapper.selectById(tripId);
         if (trip != null) {
             vo.setTripName(trip.getName());
         }
@@ -224,7 +224,7 @@ public class InvitationServiceImpl extends ServiceImpl<InvitationMapper, Invitat
 
             // 查询行程名称
             if (invitation.getTripId() != null) {
-                Trip trip = tripService.getById(invitation.getTripId());
+                Trip trip = tripMapper.selectById(invitation.getTripId());
                 if (trip != null) {
                     vo.setTripName(trip.getName());
                 }

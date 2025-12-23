@@ -17,7 +17,7 @@ import java.util.List;
 public interface PlaceService extends IService<Place> {
 
     List<SuggestionDTO> getSuggestions(String query, Long tripId);
-    PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO);
+    PlaceCreateVO addPlace(Long tripId, PlaceCreateDTO placeCreateDTO, Long userId);
     PlaceDetailVO getPlaceDetails(Long placeId);
     
     /**

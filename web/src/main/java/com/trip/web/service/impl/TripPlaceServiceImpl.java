@@ -23,9 +23,15 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
     implements TripPlaceService{
 
     private final PlaceService placeService;
+    private final com.trip.web.service.TripUserService tripUserService;
 
     @Override
-    public void deletePlace(Long tripId, Long placeId){
+    public void deletePlace(Long tripId, Long placeId, Long userId){
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
+            throw new com.trip.common.exception.LeaseException(com.trip.common.result.ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权删除地点");
+        }
+        
         UpdateWrapper<TripPlace> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("trip_id", tripId)
                 .eq("place_id", placeId);
@@ -36,7 +42,12 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
     }
 
     @Override
-    public void updatePlaceOrder(Long tripId, List<Long> placeIds) {
+    public void updatePlaceOrder(Long tripId, List<Long> placeIds, Long userId) {
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
+            throw new com.trip.common.exception.LeaseException(com.trip.common.result.ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改地点顺序");
+        }
+        
         // 遍历地点ID列表，按顺序更新sequence字段
         for (int i = 0; i < placeIds.size(); i++) {
             Long placeId = placeIds.get(i);
@@ -52,7 +63,12 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
     }
 
     @Override
-    public void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId) {
+    public void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId, Long userId) {
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
+            throw new com.trip.common.exception.LeaseException(com.trip.common.result.ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改地点");
+        }
+        
         // 更新TripPlace表中的day字段
         TripPlace tripPlace = this.getOne(new LambdaQueryWrapper<TripPlace>()
                 .eq(TripPlace::getTripId, tripId)

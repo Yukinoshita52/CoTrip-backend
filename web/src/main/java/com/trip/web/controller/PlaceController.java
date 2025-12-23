@@ -1,5 +1,6 @@
 package com.trip.web.controller;
 
+import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.dto.PlaceCreateDTO;
@@ -36,7 +37,11 @@ public class PlaceController {
     // 添加地点
     @PostMapping("/add")
     public Result<PlaceCreateVO> addPlace(@PathVariable Long tripId, @RequestBody @Validated PlaceCreateDTO placeCreateDTO) {
-        return Result.ok(placeService.addPlace(tripId, placeCreateDTO));
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        return Result.ok(placeService.addPlace(tripId, placeCreateDTO, loginUser.getUserId()));
     }
 
     // 查看地点详情

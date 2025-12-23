@@ -50,7 +50,7 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         if (existingTripUser != null) {
             // 恢复已删除的记录
             existingTripUser.setIsDeleted((byte) 0);
-            existingTripUser.setRole(1); // 重新设置为参与者
+            existingTripUser.setRole(2); // 重新设置为参与者（2）
             this.updateById(existingTripUser);
             System.out.println("addParticipant: 恢复用户 " + userId + " 在行程 " + tripId + " 中的记录");
         } else {
@@ -64,7 +64,7 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
             TripUser tripUser = new TripUser();
             tripUser.setTripId(tripId);
             tripUser.setUserId(userId);
-            tripUser.setRole(1); // 1-参与者
+            tripUser.setRole(2); // 2-参与者（只读）
             this.save(tripUser);
             System.out.println("addParticipant: 已将用户 " + userId + " 添加到行程 " + tripId);
         }
@@ -111,12 +111,129 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
     }
 
     @Override
+    public void addAdmin(Long tripId, Long userId) {
+        System.out.println("addAdmin: 将用户 " + userId + " 添加为行程 " + tripId + " 的管理员");
+        
+        // 检查是否存在已删除的记录（用户之前退出过）
+        TripUser existingTripUser = this.getOne(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 1)); // 查找已删除的记录
+        
+        if (existingTripUser != null) {
+            // 恢复已删除的记录
+            existingTripUser.setIsDeleted((byte) 0);
+            existingTripUser.setRole(1); // 设置为管理员
+            this.updateById(existingTripUser);
+            System.out.println("addAdmin: 恢复用户 " + userId + " 在行程 " + tripId + " 中的记录，设置为管理员");
+        } else {
+            // 检查是否已存在有效记录
+            if (isUserInTrip(tripId, userId)) {
+                System.out.println("addAdmin: 用户 " + userId + " 已在行程 " + tripId + " 中");
+                throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "用户已在该行程中");
+            }
+
+            // 创建新记录
+            TripUser tripUser = new TripUser();
+            tripUser.setTripId(tripId);
+            tripUser.setUserId(userId);
+            tripUser.setRole(1); // 1-管理员（可写）
+            this.save(tripUser);
+            System.out.println("addAdmin: 已将用户 " + userId + " 添加为行程 " + tripId + " 的管理员");
+        }
+        
+        // 将新成员添加到该行程的所有账本中
+        System.out.println("addAdmin: 开始为用户 " + userId + " 添加账本权限");
+        accountService.addMemberToTripBooks(tripId, userId);
+        System.out.println("addAdmin: 完成为用户 " + userId + " 添加账本权限");
+    }
+
+    @Override
     public boolean isUserInTrip(Long tripId, Long userId) {
         long count = this.count(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getTripId, tripId)
                 .eq(TripUser::getUserId, userId)
                 .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
         return count > 0;
+    }
+
+    @Override
+    public boolean hasEditPermission(Long tripId, Long userId) {
+        TripUser tripUser = this.getOne(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0));
+        
+        if (tripUser == null) {
+            return false;
+        }
+        
+        // 创建者（0）和管理员（1）有编辑权限
+        Integer role = tripUser.getRole();
+        return role != null && (role == 0 || role == 1);
+    }
+
+    @Override
+    public boolean hasMemberManagePermission(Long tripId, Long userId) {
+        TripUser tripUser = this.getOne(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0));
+        
+        if (tripUser == null) {
+            return false;
+        }
+        
+        // 创建者（0）和管理员（1）可以管理成员
+        Integer role = tripUser.getRole();
+        return role != null && (role == 0 || role == 1);
+    }
+
+    @Override
+    public Integer getUserRole(Long tripId, Long userId) {
+        TripUser tripUser = this.getOne(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getUserId, userId)
+                .eq(TripUser::getIsDeleted, 0));
+        
+        return tripUser != null ? tripUser.getRole() : null;
+    }
+
+    @Override
+    public void updateMemberRole(Long tripId, Long targetUserId, Integer newRole, Long operatorUserId) {
+        // 检查操作者权限
+        if (!hasMemberManagePermission(tripId, operatorUserId)) {
+            throw new LeaseException(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限修改成员角色");
+        }
+        
+        // 验证角色值
+        if (newRole == null || (newRole != 0 && newRole != 1 && newRole != 2)) {
+            throw new LeaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "角色值无效");
+        }
+        
+        // 不能修改创建者的角色
+        TripUser targetTripUser = this.getOne(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getUserId, targetUserId)
+                .eq(TripUser::getIsDeleted, 0));
+        
+        if (targetTripUser == null) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "目标用户不在该行程中");
+        }
+        
+        if (targetTripUser.getRole() == 0) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "不能修改创建者的角色");
+        }
+        
+        // 不能将其他用户设置为创建者（创建者角色只能通过创建行程获得）
+        if (newRole == 0) {
+            throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "不能将用户设置为创建者");
+        }
+        
+        // 更新角色
+        targetTripUser.setRole(newRole);
+        this.updateById(targetTripUser);
+        System.out.println("updateMemberRole: 已将用户 " + targetUserId + " 在行程 " + tripId + " 中的角色修改为 " + newRole);
     }
 }
 

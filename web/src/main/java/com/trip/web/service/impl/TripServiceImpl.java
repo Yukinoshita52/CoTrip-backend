@@ -102,7 +102,12 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     }
 
     @Override
-    public List<PlaceCreateVO> batchImportPlaces(Long tripId, String text){
+    public List<PlaceCreateVO> batchImportPlaces(Long tripId, String text, Long userId){
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
+            throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权导入地点");
+        }
+        
         // 调用 LLMClient 提取地点名列表
         String prompt = """
             你是一名旅游信息提取助手。请阅读以下内容，提取出文中提到的所有【景点或地点名称】，包括但不限于：
@@ -182,8 +187,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 createDTO.setUid(suggestion.getUid());
                 createDTO.setDay(0); // 默认待规划
 
-                // 调用 addPlace
-                PlaceCreateVO addResult = placeService.addPlace(tripId, createDTO);
+                // 调用 addPlace（批量导入时不需要再次检查权限，因为已经在方法开始时检查了）
+                PlaceCreateVO addResult = placeService.addPlace(tripId, createDTO, userId);
                 if (addResult != null) {
                     addedPlaces.add(addResult);
                 } else {
@@ -310,12 +315,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public TripVO updateTrip(Long tripId, TripUpdateDTO dto, Long userId) {
-        // 验证用户权限（确保用户仍在行程中，未退出）
-        TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
-                .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId)
-                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
-        if (tripUser == null) {
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改此行程");
         }
 
@@ -514,12 +515,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public String autoPlanRoute(Long tripId, Long userId) {
-        // 验证用户权限（确保用户仍在行程中，未退出）
-        TripUser tripUser = tripUserService.getOne(new LambdaQueryWrapper<TripUser>()
-                .eq(TripUser::getTripId, tripId)
-                .eq(TripUser::getUserId, userId)
-                .eq(TripUser::getIsDeleted, 0)); // 添加这个条件确保用户未退出行程
-        if (tripUser == null) {
+        // 验证用户是否有编辑权限（创建者或管理员）
+        if (!tripUserService.hasEditPermission(tripId, userId)) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权规划此行程");
         }
 

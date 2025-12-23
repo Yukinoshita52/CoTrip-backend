@@ -250,7 +250,7 @@ CREATE TABLE trip_user (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '行程-用户关系表ID',
     trip_id BIGINT NOT NULL COMMENT '行程ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
-    `role` tinyint NOT NULL DEFAULT '0' COMMENT '角色：0-创建者 1-参与者',
+    `role` tinyint NOT NULL DEFAULT '0' COMMENT '角色：0-创建者，1-管理员，2-参与者',
 
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

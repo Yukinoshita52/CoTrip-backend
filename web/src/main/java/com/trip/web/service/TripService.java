@@ -29,9 +29,10 @@ public interface TripService extends IService<Trip> {
      * 批量导入地点
      * @param tripId 行程ID
      * @param text 文本内容
+     * @param userId 用户ID（用于权限验证）
      * @return 地点列表
      */
-    List<PlaceCreateVO> batchImportPlaces(Long tripId, String text);
+    List<PlaceCreateVO> batchImportPlaces(Long tripId, String text, Long userId);
 
     /**
      * 删除行程及关联数据

@@ -23,7 +23,7 @@ public class TripUser extends BaseEntity {
     private Long userId;
 
     /**
-     * 角色：0-创建者，1-参与者
+     * 角色：0-创建者，1-管理员，2-参与者
      */
     private Integer role;
 }

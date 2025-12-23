@@ -12,14 +12,15 @@ import java.util.List;
 */
 public interface TripPlaceService extends IService<TripPlace> {
 
-    void deletePlace(Long tripId, Long placeId);
+    void deletePlace(Long tripId, Long placeId, Long userId);
 
     /**
      * 更新地点顺序
      * @param tripId 行程ID
      * @param placeIds 地点ID列表（按顺序排列）
+     * @param userId 用户ID
      */
-    void updatePlaceOrder(Long tripId, List<Long> placeIds);
+    void updatePlaceOrder(Long tripId, List<Long> placeIds, Long userId);
 
     /**
      * 更新地点信息
@@ -27,6 +28,7 @@ public interface TripPlaceService extends IService<TripPlace> {
      * @param placeId 地点ID
      * @param day 天数
      * @param typeId 地点类型ID
+     * @param userId 用户ID
      */
-    void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId);
+    void updatePlace(Long tripId, Long placeId, Integer day, Integer typeId, Long userId);
 }

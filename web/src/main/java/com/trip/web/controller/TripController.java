@@ -112,7 +112,7 @@ public class TripController {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
         
-        tripPlaceService.updatePlaceOrder(tripId, placeIds);
+        tripPlaceService.updatePlaceOrder(tripId, placeIds, loginUser.getUserId());
         return Result.ok();
     }
 
@@ -137,13 +137,21 @@ public class TripController {
     public Result<List<PlaceCreateVO>> importPlacesByText(
             @PathVariable Long tripId,
             @RequestBody PlaceBatchImportDTO dto) {
-        return Result.ok(tripService.batchImportPlaces(tripId, dto.getText()));
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        return Result.ok(tripService.batchImportPlaces(tripId, dto.getText(), loginUser.getUserId()));
     }
 
     // 删除地点
     @DeleteMapping("/places/{placeId}")
     public Result<Void> deletePlace(@PathVariable Long tripId, @PathVariable Long placeId) {
-        tripPlaceService.deletePlace(tripId, placeId);
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        tripPlaceService.deletePlace(tripId, placeId, loginUser.getUserId());
         return Result.ok();
     }
 
@@ -153,7 +161,11 @@ public class TripController {
             @PathVariable Long tripId, 
             @PathVariable Long placeId,
             @RequestBody @Validated PlaceUpdateDTO dto) {
-        tripPlaceService.updatePlace(tripId, placeId, dto.getDay(), dto.getTypeId());
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        tripPlaceService.updatePlace(tripId, placeId, dto.getDay(), dto.getTypeId(), loginUser.getUserId());
         return Result.ok();
     }
 
@@ -192,5 +204,23 @@ public class TripController {
                 .filter(inv -> inv.getTripId().equals(tripId))
                 .collect(java.util.stream.Collectors.toList());
         return Result.ok(tripInvitations);
+    }
+
+    /**
+     * 修改成员角色（创建者和管理员可以修改）
+     * @param tripId 行程ID
+     * @param dto 成员角色更新信息
+     * @return 操作结果
+     */
+    @PutMapping("/members/role")
+    public Result<Void> updateMemberRole(
+            @PathVariable Long tripId,
+            @RequestBody @Validated com.trip.model.dto.MemberRoleUpdateDTO dto) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
+        }
+        tripUserService.updateMemberRole(tripId, dto.getUserId(), dto.getRole(), loginUser.getUserId());
+        return Result.ok();
     }
 }
