@@ -1,8 +1,12 @@
 package com.trip.web.controller;
 
+import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
+import com.trip.common.result.ResultCodeEnum;
+import com.trip.model.entity.User;
 import com.trip.model.vo.AnnouncementVO;
 import com.trip.web.service.AnnouncementService;
+import com.trip.web.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +18,7 @@ import java.util.List;
 public class AnnouncementController {
 
     private final AnnouncementService announcementService;
+    private final UserService userService;
 
     /**
      * 获取公告列表
@@ -43,34 +48,63 @@ public class AnnouncementController {
     }
 
     /**
-     * 创建公告
+     * 创建公告（仅管理员）
      */
     @PostMapping
-    public Result<AnnouncementVO> createAnnouncement(@RequestBody AnnouncementVO announcementVO,
-                                                     @org.springframework.security.core.annotation.AuthenticationPrincipal com.trip.common.login.LoginUser loginUser) {
-        // 设置作者ID为当前登录用户
-        if (loginUser != null) {
-            announcementVO.setAuthorId(loginUser.getUserId());
+    public Result<AnnouncementVO> createAnnouncement(@RequestBody AnnouncementVO announcementVO) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "请先登录");
         }
+        
+        // 检查管理员权限
+        User user = userService.getById(loginUser.getUserId());
+        if (user == null || user.getRole() == null || user.getRole() != 1) {
+            return Result.fail(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限创建公告");
+        }
+        
+        announcementVO.setAuthorId(loginUser.getUserId());
         AnnouncementVO created = announcementService.createAnnouncement(announcementVO);
         return Result.ok(created);
     }
 
     /**
-     * 更新公告
+     * 更新公告（仅管理员）
      */
     @PutMapping("/{id}")
     public Result<AnnouncementVO> updateAnnouncement(@PathVariable Long id, @RequestBody AnnouncementVO announcementVO) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "请先登录");
+        }
+        
+        // 检查管理员权限
+        User user = userService.getById(loginUser.getUserId());
+        if (user == null || user.getRole() == null || user.getRole() != 1) {
+            return Result.fail(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限修改公告");
+        }
+        
         announcementVO.setId(id);
         AnnouncementVO updated = announcementService.updateAnnouncement(announcementVO);
         return Result.ok(updated);
     }
 
     /**
-     * 删除公告
+     * 删除公告（仅管理员）
      */
     @DeleteMapping("/{id}")
     public Result<Boolean> deleteAnnouncement(@PathVariable Long id) {
+        var loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null) {
+            return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "请先登录");
+        }
+        
+        // 检查管理员权限
+        User user = userService.getById(loginUser.getUserId());
+        if (user == null || user.getRole() == null || user.getRole() != 1) {
+            return Result.fail(ResultCodeEnum.ADMIN_ACCESS_FORBIDDEN.getCode(), "无权限删除公告");
+        }
+        
         boolean success = announcementService.deleteAnnouncement(id);
         return success ? Result.ok(true) : Result.error("删除失败");
     }
