@@ -5,6 +5,7 @@ import com.trip.model.entity.PostLike;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.trip.model.vo.AuthorVO;
 import org.apache.ibatis.annotations.MapKey;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,14 @@ public interface PostLikeMapper extends BaseMapper<PostLike> {
     Integer countByPostId(Long postId);
 
     List<AuthorVO> getPostLikeUserByPostId(Long postId);
+    
+    /**
+     * 获取不同的帖子ID列表（用于数据同步）
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 帖子ID列表
+     */
+    List<Long> getDistinctPostIds(@Param("offset") int offset, @Param("limit") int limit);
 }
 
 

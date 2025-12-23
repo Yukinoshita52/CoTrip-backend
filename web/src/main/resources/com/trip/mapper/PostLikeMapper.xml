@@ -52,4 +52,12 @@
           AND pl.post_id = #{postId}
           AND u.is_deleted = 0
     </select>
+    
+    <select id="getDistinctPostIds" resultType="java.lang.Long">
+        SELECT DISTINCT post_id
+        FROM post_like
+        WHERE is_deleted = 0
+        ORDER BY post_id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>
