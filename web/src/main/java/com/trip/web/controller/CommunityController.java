@@ -10,6 +10,7 @@ import com.trip.web.mapper.CommunityMapper;
 import com.trip.web.service.CommentService;
 import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostService;
+import com.trip.web.service.PostViewService;
 import com.trip.web.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ public class CommunityController {
     private PostService postService;
     @Autowired
     private CommentService commentService;
+    @Autowired
+    private PostViewService postViewService;
 
     // 1. 内容流 Feed
     @GetMapping("/feed")
@@ -46,7 +49,25 @@ public class CommunityController {
     // 2. 帖子详情
     @GetMapping("/post/{postId}")
     public Result<PostDetailVO> getPostDetail(@PathVariable Long postId) {
+        // 增加浏览量
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        Long userId = loginUser != null ? loginUser.getUserId() : null;
+        Long viewCount = postViewService.incrementViewCount(postId, userId);
+        
         PostDetailVO vo = communityService.getPostDetail(postId);
+        // 更新浏览量到返回结果中
+        if (vo != null) {
+            if (vo.getStats() != null) {
+                vo.getStats().setViewCount(viewCount.intValue());
+            } else {
+                // 如果stats为null，创建一个新的StatVO
+                com.trip.model.vo.StatVO stats = new com.trip.model.vo.StatVO();
+                stats.setViewCount(viewCount.intValue());
+                stats.setLikeCount(0);
+                stats.setCommentCount(0);
+                vo.setStats(stats);
+            }
+        }
         return Result.ok(vo);
     }
 
@@ -108,6 +129,21 @@ public class CommunityController {
     public Result<PostLikeUsersVO> getPostLikes(@PathVariable Long postId) {
         PostLikeUsersVO res = commentService.getPostLikeUsers(postId);
         return Result.ok(res);
+    }
+
+    // 6.4 检查用户是否已点赞
+    @GetMapping("/post/{postId}/like/status")
+    public Result<Boolean> checkLikeStatus(@PathVariable Long postId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        boolean isLiked = commentService.isPostLikedByUser(postId, loginUser.getUserId());
+        return Result.ok(isLiked);
+    }
+
+    // 6.5 获取帖子浏览量
+    @GetMapping("/post/{postId}/views")
+    public Result<Long> getPostViews(@PathVariable Long postId) {
+        Long viewCount = postViewService.getViewCount(postId);
+        return Result.ok(viewCount);
     }
 
     // 7. 用户主页

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
@@ -21,7 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BaiduRouteCacheService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
     private static final String CACHE_PREFIX = "baidu_route:";
@@ -64,11 +64,11 @@ public class BaiduRouteCacheService {
      */
     public Map<String, Object> getRouteCache(String cacheKey) {
         try {
-            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            String cached = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
                 log.info("百度地图路线规划缓存命中: key={}", cacheKey);
                 @SuppressWarnings("unchecked")
-                Map<String, Object> result = (Map<String, Object>) cached;
+                Map<String, Object> result = objectMapper.readValue(cached, Map.class);
                 return result;
             }
             log.debug("百度地图路线规划缓存未命中: key={}", cacheKey);
@@ -90,8 +90,9 @@ public class BaiduRouteCacheService {
             if (routeData != null && !routeData.isEmpty()) {
                 // 验证必要字段
                 if (routeData.containsKey("distance") && routeData.containsKey("duration")) {
-                    // 存入缓存，设置永不过期
-                    redisTemplate.opsForValue().set(cacheKey, routeData);
+                    // 序列化为JSON字符串并存入缓存，设置永不过期
+                    String jsonData = objectMapper.writeValueAsString(routeData);
+                    stringRedisTemplate.opsForValue().set(cacheKey, jsonData);
                     
                     // 记录缓存的数据类型
                     boolean hasRoutePolyline = routeData.containsKey("routePolyline") && 
@@ -115,7 +116,7 @@ public class BaiduRouteCacheService {
      */
     public void evictRouteCache(String cacheKey) {
         try {
-            Boolean deleted = redisTemplate.delete(cacheKey);
+            Boolean deleted = stringRedisTemplate.delete(cacheKey);
             if (Boolean.TRUE.equals(deleted)) {
                 log.info("已清除百度地图路线规划缓存: key={}", cacheKey);
             }
@@ -129,9 +130,9 @@ public class BaiduRouteCacheService {
      */
     public void evictAllRouteCache() {
         try {
-            var keys = redisTemplate.keys(CACHE_PREFIX + "*");
+            var keys = stringRedisTemplate.keys(CACHE_PREFIX + "*");
             if (keys != null && !keys.isEmpty()) {
-                Long deleted = redisTemplate.delete(keys);
+                Long deleted = stringRedisTemplate.delete(keys);
                 log.info("已清除所有百度地图路线规划缓存: 共{}个", deleted);
             }
         } catch (Exception e) {
@@ -146,7 +147,7 @@ public class BaiduRouteCacheService {
      */
     public String getCacheStats() {
         try {
-            var keys = redisTemplate.keys(CACHE_PREFIX + "*");
+            var keys = stringRedisTemplate.keys(CACHE_PREFIX + "*");
             int count = keys != null ? keys.size() : 0;
             return String.format("百度地图路线规划缓存统计: 共%d个缓存项", count);
         } catch (Exception e) {

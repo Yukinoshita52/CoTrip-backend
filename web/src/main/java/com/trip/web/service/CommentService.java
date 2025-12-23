@@ -23,4 +23,9 @@ public interface CommentService extends IService<Comment> {
     PostLikeVO unlikePost(Long postId, Long userId);
 
     PostLikeUsersVO getPostLikeUsers(Long postId);
+    
+    /**
+     * 检查用户是否已点赞帖子
+     */
+    boolean isPostLikedByUser(Long postId, Long userId);
 }

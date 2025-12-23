@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoutePlanCacheService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
     private static final String CACHE_PREFIX = "route_plan:";
@@ -60,10 +60,10 @@ public class RoutePlanCacheService {
      */
     public String getRoutePlan(String cacheKey) {
         try {
-            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            String cached = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
                 log.info("路径规划缓存命中: key={}", cacheKey);
-                return cached.toString();
+                return cached;
             }
             log.debug("路径规划缓存未命中: key={}", cacheKey);
             return null;
@@ -85,7 +85,7 @@ public class RoutePlanCacheService {
             objectMapper.readTree(routePlanJson);
             
             // 存入缓存，设置永不过期
-            redisTemplate.opsForValue().set(cacheKey, routePlanJson);
+            stringRedisTemplate.opsForValue().set(cacheKey, routePlanJson);
             log.info("路径规划结果已缓存: key={}, size={} bytes", cacheKey, routePlanJson.length());
         } catch (JsonProcessingException e) {
             log.error("缓存路径规划失败，JSON格式无效: key={}, json={}", cacheKey, routePlanJson, e);
@@ -139,7 +139,7 @@ public class RoutePlanCacheService {
      */
     public void evictRoutePlan(String cacheKey) {
         try {
-            Boolean deleted = redisTemplate.delete(cacheKey);
+            Boolean deleted = stringRedisTemplate.delete(cacheKey);
             if (Boolean.TRUE.equals(deleted)) {
                 log.info("已清除路径规划缓存: key={}", cacheKey);
             } else {
@@ -156,9 +156,9 @@ public class RoutePlanCacheService {
     public void evictAllRoutePlans() {
         try {
             // 获取所有匹配的键
-            var keys = redisTemplate.keys(CACHE_PREFIX + "*");
+            var keys = stringRedisTemplate.keys(CACHE_PREFIX + "*");
             if (keys != null && !keys.isEmpty()) {
-                Long deleted = redisTemplate.delete(keys);
+                Long deleted = stringRedisTemplate.delete(keys);
                 log.info("已清除所有路径规划缓存: 共{}个", deleted);
             } else {
                 log.info("没有找到路径规划缓存");
@@ -175,7 +175,7 @@ public class RoutePlanCacheService {
      */
     public String getCacheStats() {
         try {
-            var keys = redisTemplate.keys(CACHE_PREFIX + "*");
+            var keys = stringRedisTemplate.keys(CACHE_PREFIX + "*");
             int count = keys != null ? keys.size() : 0;
             return String.format("路径规划缓存统计: 共%d个缓存项", count);
         } catch (Exception e) {

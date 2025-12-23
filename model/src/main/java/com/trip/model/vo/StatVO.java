@@ -17,6 +17,7 @@ import org.springframework.lang.Nullable;
 public class StatVO {
     private Integer likeCount;
     private Integer commentCount;
+    private Integer viewCount;
 
     /**
      * 可选参数（如返回true，则说明当前用户喜欢该帖子）

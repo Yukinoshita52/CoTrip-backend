@@ -2,7 +2,7 @@ package com.trip.web.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
@@ -17,7 +17,7 @@ import java.security.NoSuchAlgorithmException;
 @RequiredArgsConstructor
 public class LLMCacheService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 生成缓存键
@@ -49,10 +49,10 @@ public class LLMCacheService {
      */
     public String getLLMResponse(String cacheKey) {
         try {
-            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            String cached = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
                 log.info("LLM缓存命中: key={}", cacheKey);
-                return cached.toString();
+                return cached;
             }
             log.debug("LLM缓存未命中: key={}", cacheKey);
             return null;
@@ -71,7 +71,7 @@ public class LLMCacheService {
     public void cacheLLMResponse(String cacheKey, String response) {
         try {
             if (response != null && !response.trim().isEmpty()) {
-                redisTemplate.opsForValue().set(cacheKey, response);
+                stringRedisTemplate.opsForValue().set(cacheKey, response);
                 log.info("LLM响应已缓存: key={}, size={} bytes", cacheKey, response.length());
             }
         } catch (Exception e) {
@@ -86,7 +86,7 @@ public class LLMCacheService {
      */
     public void evictLLMCache(String cacheKey) {
         try {
-            Boolean deleted = redisTemplate.delete(cacheKey);
+            Boolean deleted = stringRedisTemplate.delete(cacheKey);
             if (Boolean.TRUE.equals(deleted)) {
                 log.info("已清除LLM缓存: key={}", cacheKey);
             }
@@ -102,9 +102,9 @@ public class LLMCacheService {
      */
     public void evictLLMCacheByPrefix(String prefix) {
         try {
-            var keys = redisTemplate.keys(prefix + ":*");
+            var keys = stringRedisTemplate.keys(prefix + ":*");
             if (keys != null && !keys.isEmpty()) {
-                Long deleted = redisTemplate.delete(keys);
+                Long deleted = stringRedisTemplate.delete(keys);
                 log.info("已清除LLM缓存: 前缀={}, 数量={}", prefix, deleted);
             }
         } catch (Exception e) {

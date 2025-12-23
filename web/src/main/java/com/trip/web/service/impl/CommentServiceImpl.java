@@ -10,6 +10,7 @@ import com.trip.web.mapper.PostLikeMapper;
 import com.trip.web.service.CommentService;
 import com.trip.web.mapper.CommentMapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -19,6 +20,7 @@ import java.util.*;
  * @description 针对表【comment】的数据库操作Service实现
  * @createDate 2025-11-22 15:25:47
  */
+@Slf4j
 @Service
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         implements CommentService {
@@ -120,21 +122,58 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
 
     @Override
     public PostLikeVO likePost(Long postId, Long userId) {
-        PostLike postLike = new PostLike();
-        postLike.setUserId(userId);
-        postLike.setPostId(postId);
-        postLikeMapper.insert(postLike);
-        Integer likeCount = postLikeMapper.countByPostId(postId);
-        return new PostLikeVO().withLiked(true).withPostId(postId).withLikeCount(likeCount);
+        // 检查用户是否已经点过赞
+        PostLike existingLike = postLikeMapper.selectOne(
+            new LambdaQueryWrapper<PostLike>()
+                .eq(PostLike::getPostId, postId)
+                .eq(PostLike::getUserId, userId)
+        );
+        
+        if (existingLike != null) {
+            // 用户已经点过赞，返回当前状态
+            Integer likeCount = postLikeMapper.countByPostId(postId);
+            return new PostLikeVO().withLiked(true).withPostId(postId).withLikeCount(likeCount);
+        }
+        
+        // 用户未点赞，添加点赞记录
+        try {
+            PostLike postLike = new PostLike();
+            postLike.setUserId(userId);
+            postLike.setPostId(postId);
+            postLikeMapper.insert(postLike);
+            Integer likeCount = postLikeMapper.countByPostId(postId);
+            return new PostLikeVO().withLiked(true).withPostId(postId).withLikeCount(likeCount);
+        } catch (Exception e) {
+            // 如果插入失败（可能是并发导致的重复插入），重新查询状态
+            log.warn("点赞插入失败，可能是并发操作: postId={}, userId={}, error={}", postId, userId, e.getMessage());
+            Integer likeCount = postLikeMapper.countByPostId(postId);
+            boolean isLiked = isPostLikedByUser(postId, userId);
+            return new PostLikeVO().withLiked(isLiked).withPostId(postId).withLikeCount(likeCount);
+        }
     }
 
     @Override
     public PostLikeVO unlikePost(Long postId, Long userId) {
-        postLikeMapper.delete(new LambdaQueryWrapper<PostLike>()
-                                    .eq(PostLike::getPostId, postId)
-                                    .eq(PostLike::getUserId, userId));
-        Integer likeCount = postLikeMapper.countByPostId(postId);
-        return new PostLikeVO().withLiked(false).withPostId(postId).withLikeCount(likeCount);
+        try {
+            int deletedCount = postLikeMapper.delete(new LambdaQueryWrapper<PostLike>()
+                                        .eq(PostLike::getPostId, postId)
+                                        .eq(PostLike::getUserId, userId));
+            
+            if (deletedCount > 0) {
+                log.info("取消点赞成功: postId={}, userId={}", postId, userId);
+            } else {
+                log.warn("取消点赞时未找到记录: postId={}, userId={}", postId, userId);
+            }
+            
+            Integer likeCount = postLikeMapper.countByPostId(postId);
+            return new PostLikeVO().withLiked(false).withPostId(postId).withLikeCount(likeCount);
+        } catch (Exception e) {
+            log.error("取消点赞失败: postId={}, userId={}, error={}", postId, userId, e.getMessage());
+            // 即使删除失败，也返回当前状态
+            Integer likeCount = postLikeMapper.countByPostId(postId);
+            boolean isLiked = isPostLikedByUser(postId, userId);
+            return new PostLikeVO().withLiked(isLiked).withPostId(postId).withLikeCount(likeCount);
+        }
     }
 
     @Override
@@ -145,6 +184,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         res.setPostId(postId);
         res.setUsers(users);
         return res;
+    }
+
+    @Override
+    public boolean isPostLikedByUser(Long postId, Long userId) {
+        PostLike existingLike = postLikeMapper.selectOne(
+            new LambdaQueryWrapper<PostLike>()
+                .eq(PostLike::getPostId, postId)
+                .eq(PostLike::getUserId, userId)
+        );
+        return existingLike != null;
     }
 
 }

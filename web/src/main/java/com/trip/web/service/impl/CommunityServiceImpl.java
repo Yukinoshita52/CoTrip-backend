@@ -11,6 +11,7 @@ import com.trip.model.vo.*;
 import com.trip.web.mapper.TripUserMapper;
 import com.trip.web.mapper.*;
 import com.trip.web.service.CommunityService;
+import com.trip.web.service.PostViewService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,8 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     private final PostMapper postMapper;
     @Resource
     private final CommunityMapper communityMapper;
+    @Resource
+    private final PostViewService postViewService;
 
     /**
      * 1.首先对post表是分页查询数据的，查询到一系列的id as post_id。
@@ -192,6 +195,9 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             LikeCountDTO likeCountDTO = likeCountMap.getOrDefault(post.getId(), null);
             stats.setCommentCount(commentCountDTO == null ? 0 : commentCountDTO.getCommentCount());
             stats.setLikeCount(likeCountDTO == null ? 0 : likeCountDTO.getLikeCount());
+            // 从Redis获取浏览量
+            Long viewCount = postViewService.getViewCount(post.getId());
+            stats.setViewCount(viewCount.intValue());
             vo.setStats(stats);
 
             vo.setCreateTime(post.getCreateTime());
