@@ -66,12 +66,10 @@ public class BaiduRouteCacheService {
         try {
             String cached = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                log.info("百度地图路线规划缓存命中: key={}", cacheKey);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> result = objectMapper.readValue(cached, Map.class);
                 return result;
             }
-            log.debug("百度地图路线规划缓存未命中: key={}", cacheKey);
             return null;
         } catch (Exception e) {
             log.error("从缓存获取路线规划失败: key={}", cacheKey, e);
@@ -93,13 +91,6 @@ public class BaiduRouteCacheService {
                     // 序列化为JSON字符串并存入缓存，设置永不过期
                     String jsonData = objectMapper.writeValueAsString(routeData);
                     stringRedisTemplate.opsForValue().set(cacheKey, jsonData);
-                    
-                    // 记录缓存的数据类型
-                    boolean hasRoutePolyline = routeData.containsKey("routePolyline") && 
-                        routeData.get("routePolyline") != null;
-                    
-                    log.info("百度地图路线规划结果已缓存: key={}, 包含绘制数据={}", 
-                        cacheKey, hasRoutePolyline);
                 } else {
                     log.warn("路线规划数据缺少必要字段，跳过缓存: key={}", cacheKey);
                 }

@@ -40,6 +40,8 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/announcement/**").permitAll()  // 所有人可以查看公告
                         .requestMatchers("/api/announcement/**").authenticated()  // 发布/修改/删除公告需要登录
+                        .requestMatchers(HttpMethod.GET, "/api/transport-info/cache/stats").permitAll()  // 缓存统计接口公开
+                        .requestMatchers(HttpMethod.GET, "/api/baidu-route/cache/stats").permitAll()  // 路线规划缓存统计接口公开
                         .requestMatchers("/api/invitations/**").authenticated()  // 邀请相关接口需要登录
                         .requestMatchers("/api/trips/**").authenticated()  // 行程相关接口需要登录
                         .anyRequest().authenticated()
