@@ -17,6 +17,7 @@ import lombok.Data;
 public class AuthorVO {
     private Long userId;
     private String nickname;
+    private String username;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String avatar;

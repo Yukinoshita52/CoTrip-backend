@@ -130,8 +130,13 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
                         new LambdaQueryWrapper<GraphInfo>()
                                 .eq(GraphInfo::getItemType, 1)
                                 .in(GraphInfo::getItemId, userIds)
+                                .eq(GraphInfo::getIsDeleted, 0)
                 ).stream()
-                .collect(Collectors.toMap(GraphInfo::getItemId, GraphInfo::getUrl));
+                .collect(Collectors.toMap(
+                    GraphInfo::getItemId, 
+                    GraphInfo::getUrl,
+                    (existing, replacement) -> existing // 保留第一个
+                ));
 
 
         /*
@@ -177,6 +182,7 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             User user = userMap.get(ownerId);
             author.setUserId(user.getId());
             author.setNickname(user.getNickname());
+            author.setUsername(user.getUsername());
             author.setAvatar(avatarMap.get(ownerId));
 
             FeedPageVO.FeedItemVO vo = new FeedPageVO.FeedItemVO();
@@ -248,6 +254,12 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     }
 
     @Override
+    public StatVO getPostStats(Long postId, Long userId) {
+        // 使用现有的 PostMapper.getStatsByPostId 方法
+        return postMapper.getStatsByPostId(postId, userId);
+    }
+
+    @Override
     public PostCreatedVO createPost(Long userId,TripDTO dto) {
 //        如果dto中的行程已经被删除了，那么这里就不能再进行创建了
         if (tripMapper.selectById(dto.getTripId()) == null) {
@@ -276,6 +288,7 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         UserProfileVO res = new UserProfileVO();
         res.setUserId(userId);
         res.setNickname(authorVO.getNickname());
+        res.setUsername(authorVO.getUsername());
         res.setAvatar(authorVO.getAvatar());
         res.setStats(stats);
         res.setPosts(posts);

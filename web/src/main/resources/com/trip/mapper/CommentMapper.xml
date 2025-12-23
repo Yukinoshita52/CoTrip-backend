@@ -46,20 +46,26 @@
         <association property="user" javaType="com.trip.model.vo.AuthorVO">
             <result property="userId" column="userId"/>
             <result property="nickname" column="nickname"/>
+            <result property="username" column="username"/>
             <result property="avatar" column="avatar"/>
         </association>
     </resultMap>
     <select id="getCommentsByPostId" resultMap="getCommentsByPostIdMap">
-        select comment.id      as commentId,
-               comment.user_id as userId,
-               user.nickname   as nickname,
-               graph_info.url  as avatar,
-               comment.content as content,
-               comment.create_time,
-               comment.parent_id
-        from comment
-                 join graph_info on comment.user_id = graph_info.item_id and graph_info.item_type = 1
-                 join user on comment.user_id = user.id
+        SELECT 
+            c.id as commentId,
+            c.user_id as userId,
+            u.nickname as nickname,
+            u.username as username,
+            COALESCE(gi.url, '') as avatar,
+            c.content as content,
+            c.create_time,
+            c.parent_id
+        FROM comment c
+        INNER JOIN user u ON c.user_id = u.id AND u.is_deleted = 0
+        LEFT JOIN graph_info gi ON c.user_id = gi.item_id AND gi.item_type = 1 AND gi.is_deleted = 0
+        WHERE c.post_id = #{postId} 
+          AND c.is_deleted = 0
+        ORDER BY c.create_time ASC
     </select>
 
     <select id="getChildCommentIds" resultType="java.lang.Long">

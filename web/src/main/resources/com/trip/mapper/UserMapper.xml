@@ -21,10 +21,15 @@
         create_time,update_time,is_deleted
     </sql>
     <select id="getAuthorVoByUserId" resultType="com.trip.model.vo.AuthorVO">
-        select user.id as userId, user.nickname, graph_info.url as avatar
-        from user
-                 join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
-        where user.id = #{userId} and user.is_deleted = 0
+        SELECT 
+            u.id as userId, 
+            u.nickname, 
+            u.username,
+            COALESCE(gi.url, '') as avatar
+        FROM user u
+        LEFT JOIN graph_info gi ON u.id = gi.item_id AND gi.item_type = 1 AND gi.is_deleted = 0
+        WHERE u.id = #{userId} AND u.is_deleted = 0
+        LIMIT 1
     </select>
 
     <select id="getUserPostStatsByUserId" resultType="com.trip.model.vo.UserPostsStatsVO">
@@ -61,10 +66,14 @@
 
 
     <select id="getAuthorVoByKeyword" resultType="com.trip.model.vo.AuthorVO">
-        select user.id as userId, user.nickname, graph_info.url as avatar
-        from user
-                 left join graph_info on user.id = graph_info.item_id and graph_info.item_type = 1
-        where user.nickname like CONCAT('%', #{keyword}, '%')
-          and user.is_deleted = 0
+        SELECT 
+            u.id as userId, 
+            u.nickname, 
+            u.username,
+            COALESCE(gi.url, '') as avatar
+        FROM user u
+        LEFT JOIN graph_info gi ON u.id = gi.item_id AND gi.item_type = 1 AND gi.is_deleted = 0
+        WHERE u.nickname LIKE CONCAT('%', #{keyword}, '%')
+          AND u.is_deleted = 0
     </select>
 </mapper>

@@ -19,6 +19,8 @@ public interface CommunityService extends IService<Post> {
 
     PostDetailVO getPostDetail(Long postId);
 
+    StatVO getPostStats(Long postId, Long userId);
+
     /**
      * 根据tripId创建帖子（也就是用户分享了自己的行程到社区）
      * @param dto

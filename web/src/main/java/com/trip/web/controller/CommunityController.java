@@ -146,6 +146,25 @@ public class CommunityController {
         return Result.ok(viewCount);
     }
 
+    // 6.6 获取帖子统计信息
+    @GetMapping("/post/{postId}/stats")
+    public Result<StatVO> getPostStats(@PathVariable Long postId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        Long userId = loginUser != null ? loginUser.getUserId() : null;
+        
+        // 获取基本统计信息
+        StatVO stats = postService.getById(postId) != null ? 
+            communityService.getPostStats(postId, userId) : null;
+        
+        if (stats != null) {
+            // 添加浏览量
+            Long viewCount = postViewService.getViewCount(postId);
+            stats.setViewCount(viewCount.intValue());
+        }
+        
+        return Result.ok(stats);
+    }
+
     // 7. 用户主页
     @GetMapping("/user/{userId}")
     public Result<UserProfileVO> getUserProfile(@PathVariable Long userId) {

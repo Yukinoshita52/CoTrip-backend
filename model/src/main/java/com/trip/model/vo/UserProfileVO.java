@@ -12,6 +12,7 @@ import java.util.List;
 public class UserProfileVO {
     private Long userId;
     private String nickname;
+    private String username;
     private String avatar;
     private UserPostsStatsVO stats;
     private List<UserPostVO> posts;

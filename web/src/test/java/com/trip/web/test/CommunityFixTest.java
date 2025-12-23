@@ -147,4 +147,73 @@ public class CommunityFixTest {
         
         log.info("=== 浏览量数据初始化完成 ===");
     }
+
+    /**
+     * 测试社区详情页面的评论功能
+     */
+    @Test
+    public void testCommunityCommentFunctionality() {
+        Long postId = 1L;
+        Long userId = 5L;
+        
+        log.info("=== 测试社区详情页面评论功能 ===");
+        
+        try {
+            // 测试获取评论列表
+            var commentsResult = commentService.getCommentsByPostId(postId);
+            log.info("获取评论列表: postId={}, 评论数量={}", postId, 
+                commentsResult.getComments() != null ? commentsResult.getComments().size() : 0);
+            
+            // 测试添加评论
+            var commentDTO = new com.trip.model.dto.CommentDTO();
+            commentDTO.setPostId(postId);
+            commentDTO.setContent("这是一个测试评论，内容很精彩！");
+            
+            var addResult = commentService.addComment(commentDTO, userId);
+            log.info("添加评论结果: commentId={}, createTime={}", 
+                addResult.getCommentId(), addResult.getCreateTime());
+            
+            // 再次获取评论列表验证
+            var updatedComments = commentService.getCommentsByPostId(postId);
+            log.info("添加评论后的评论数量: {}", 
+                updatedComments.getComments() != null ? updatedComments.getComments().size() : 0);
+            
+        } catch (Exception e) {
+            log.error("测试评论功能失败", e);
+        }
+        
+        log.info("=== 社区详情页面评论功能测试完成 ===");
+    }
+
+    /**
+     * 测试评论功能是否正常工作（简化版）
+     */
+    @Test
+    public void testBasicCommentFunctionality() {
+        Long postId = 1L;
+        
+        log.info("=== 测试基础评论功能 ===");
+        
+        try {
+            // 测试获取评论列表
+            var commentsResult = commentService.getCommentsByPostId(postId);
+            log.info("获取评论列表成功: postId={}, 评论数量={}", postId, 
+                commentsResult.getComments() != null ? commentsResult.getComments().size() : 0);
+            
+            // 打印评论详情
+            if (commentsResult.getComments() != null) {
+                for (var comment : commentsResult.getComments()) {
+                    log.info("  评论: ID={}, 用户={}, 内容={}", 
+                        comment.getCommentId(), 
+                        comment.getUser() != null ? comment.getUser().getNickname() : "未知用户",
+                        comment.getContent());
+                }
+            }
+            
+        } catch (Exception e) {
+            log.error("测试评论功能失败", e);
+        }
+        
+        log.info("=== 基础评论功能测试完成 ===");
+    }
 }

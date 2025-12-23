@@ -19,9 +19,18 @@
         is_deleted
     </sql>
     <select id="getAuthorByTripId" resultType="com.trip.model.vo.AuthorVO">
-        select user.id as userId, user.nickname as nickname, graph_info.url as avatar
-        from trip_user
-                 join user on trip_user.user_id = user.id and trip_user.trip_id = #{tripId}
-                 join graph_info on graph_info.item_id = user.id and graph_info.item_type = 1
+        SELECT 
+            u.id as userId, 
+            u.nickname as nickname, 
+            u.username,
+            COALESCE(gi.url, '') as avatar
+        FROM trip_user tu
+        INNER JOIN user u ON tu.user_id = u.id 
+        LEFT JOIN graph_info gi ON u.id = gi.item_id AND gi.item_type = 1 AND gi.is_deleted = 0
+        WHERE tu.trip_id = #{tripId} 
+          AND tu.role = 0 
+          AND tu.is_deleted = 0 
+          AND u.is_deleted = 0
+        LIMIT 1
     </select>
 </mapper>
