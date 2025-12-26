@@ -14,4 +14,6 @@ import lombok.Data;
 @Data
 public class TripDTO {
     private Long tripId;
+    private String name;
+    private String description;
 }

@@ -5,6 +5,8 @@ import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
 import com.trip.model.dto.CommentDTO;
 import com.trip.model.dto.TripDTO;
+import com.trip.model.entity.Post;
+import com.trip.model.entity.Trip;
 import com.trip.model.vo.*;
 import com.trip.web.mapper.CommunityMapper;
 import com.trip.web.service.CommentService;
@@ -12,6 +14,7 @@ import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostService;
 import com.trip.web.service.PostViewService;
 import com.trip.web.service.PostLikeService;
+import com.trip.web.service.TripService;
 import com.trip.web.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ClassName: CommunityController
@@ -43,6 +47,8 @@ public class CommunityController {
     private PostViewService postViewService;
     @Autowired
     private PostLikeService postLikeService;
+    @Autowired
+    private TripService tripService;
 
     // 1. 内容流 Feed
     @GetMapping("/feed")
@@ -88,6 +94,38 @@ public class CommunityController {
     @DeleteMapping("/post/{postId}")
     public Result<PostDeletedVO> deletePost(@PathVariable Long postId) {
         postService.removeById(postId);
+        return Result.ok();
+    }
+
+    // 4.1 更新帖子
+    @PutMapping("/post/{postId}")
+    public Result<Void> updatePost(@PathVariable Long postId, @RequestBody TripDTO dto) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        // 检查帖子是否存在且属于当前用户
+        Post post = postService.getById(postId);
+        if (post == null) {
+            return Result.error("帖子不存在");
+        }
+        
+        if (!post.getUserId().equals(loginUser.getUserId())) {
+            return Result.error("无权限编辑此帖子");
+        }
+        
+        // 更新关联的行程信息（帖子的标题和描述实际存储在trip表中）
+        Trip trip = tripService.getById(post.getTripId());
+        if (trip == null) {
+            return Result.error("关联的行程不存在");
+        }
+        
+        // 更新行程的名称和描述
+        trip.setName(dto.getName());
+        trip.setDescription(dto.getDescription());
+        tripService.updateById(trip);
+        
         return Result.ok();
     }
 
@@ -221,6 +259,49 @@ public class CommunityController {
         System.out.println("返回已分享行程ID: " + sharedTripIds);
         
         return Result.ok(sharedTripIds);
+    }
+
+    // 9.1 收藏帖子
+    @PostMapping("/post/{postId}/collect")
+    public Result<Void> collectPost(@PathVariable Long postId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        // TODO: 实现收藏功能
+        // 这里可以创建一个收藏表来存储用户收藏的帖子
+        return Result.ok();
+    }
+
+    // 9.2 取消收藏帖子
+    @DeleteMapping("/post/{postId}/collect")
+    public Result<Void> uncollectPost(@PathVariable Long postId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        // TODO: 实现取消收藏功能
+        return Result.ok();
+    }
+
+    // 9.3 举报帖子
+    @PostMapping("/post/{postId}/report")
+    public Result<Void> reportPost(@PathVariable Long postId, @RequestBody Map<String, String> request) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.error("用户未登录");
+        }
+        
+        String reason = request.get("reason");
+        if (reason == null || reason.trim().isEmpty()) {
+            return Result.error("举报原因不能为空");
+        }
+        
+        // TODO: 实现举报功能
+        // 这里可以创建一个举报表来存储举报信息
+        return Result.ok();
     }
 
     // 临时调试接口：获取用户行程数据结构
