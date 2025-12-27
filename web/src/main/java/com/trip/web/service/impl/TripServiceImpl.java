@@ -599,22 +599,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             return "没有待规划的地点";
         }
 
+        // 获取所有已规划的地点（day>0）
+        List<TripPlace> plannedPlaces = tripPlaceMapper.selectList(new LambdaQueryWrapper<TripPlace>()
+                .eq(TripPlace::getTripId, tripId)
+                .gt(TripPlace::getDay, 0)
+                .orderByAsc(TripPlace::getDay)
+                .orderByAsc(TripPlace::getSequence));
+
         // 获取行程信息
         Trip trip = this.getById(tripId);
         if (trip == null) {
             throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "行程不存在");
-        }
-
-        // 构建地点信息和地点ID列表
-        StringBuilder placesInfo = new StringBuilder();
-        List<Long> placeIds = new ArrayList<>();
-        for (TripPlace tp : unplannedPlaces) {
-            Place place = placeMapper.selectById(tp.getPlaceId());
-            if (place != null) {
-                placesInfo.append(place.getName()).append("(")
-                        .append(place.getLat()).append(",").append(place.getLng()).append(");");
-                placeIds.add(place.getId());
-            }
         }
 
         // 计算行程天数
@@ -624,14 +619,58 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             tripDays = Math.max(1, (int) (diffInMillies / (1000 * 60 * 60 * 24)) + 1);
         }
 
-        // 生成缓存键
-        String cacheKey = routePlanCacheService.generateCacheKey(placesInfo.toString(), tripDays);
-        
+        // 构建已规划地点信息
+        StringBuilder existingPlanInfo = new StringBuilder();
+        Map<Integer, List<Place>> plannedPlacesByDay = new java.util.HashMap<>();
+
+        for (TripPlace tp : plannedPlaces) {
+            Place place = placeMapper.selectById(tp.getPlaceId());
+            if (place != null) {
+                plannedPlacesByDay.computeIfAbsent(tp.getDay(), k -> new ArrayList<>()).add(place);
+            }
+        }
+
+        // 构建已规划地点的描述信息
+        for (Map.Entry<Integer, List<Place>> entry : plannedPlacesByDay.entrySet()) {
+            existingPlanInfo.append("第").append(entry.getKey()).append("天: ");
+            List<Place> places = entry.getValue();
+            for (int i = 0; i < places.size(); i++) {
+                Place place = places.get(i);
+                existingPlanInfo.append(place.getName())
+                        .append("(").append(place.getLat()).append(",").append(place.getLng()).append(")");
+                if (i < places.size() - 1) {
+                    existingPlanInfo.append(" -> ");
+                }
+            }
+            existingPlanInfo.append("; ");
+        }
+
+        // 构建待规划地点信息
+        StringBuilder unplannedPlacesInfo = new StringBuilder();
+        List<Long> unplannedPlaceIds = new ArrayList<>();
+        for (TripPlace tp : unplannedPlaces) {
+            Place place = placeMapper.selectById(tp.getPlaceId());
+            if (place != null) {
+                unplannedPlacesInfo.append(place.getName()).append("(")
+                        .append(place.getLat()).append(",").append(place.getLng()).append(");");
+                unplannedPlaceIds.add(place.getId());
+            }
+        }
+
+        // 构建所有地点ID列表用于缓存键
+        List<Long> allPlaceIds = new ArrayList<>();
+        allPlaceIds.addAll(plannedPlaces.stream().map(TripPlace::getPlaceId).collect(Collectors.toList()));
+        allPlaceIds.addAll(unplannedPlaceIds);
+
+        // 生成缓存键（包含已规划地点信息）
+        String cacheKey = routePlanCacheService.generateCacheKey(
+                existingPlanInfo.toString() + unplannedPlacesInfo.toString(), tripDays);
+
         // 尝试从缓存获取路径规划结果
         String cachedRoutePlan = routePlanCacheService.getRoutePlan(cacheKey);
         String routePlanJson = null;
         
-        if (cachedRoutePlan != null && routePlanCacheService.isValidRoutePlan(cachedRoutePlan, placeIds)) {
+        if (cachedRoutePlan != null && routePlanCacheService.isValidRoutePlan(cachedRoutePlan, allPlaceIds)) {
             // 缓存命中且有效
             routePlanJson = cachedRoutePlan;
             log.info("使用缓存的路径规划结果: tripId={}, cacheKey={}", tripId, cacheKey);
@@ -639,32 +678,69 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             // 缓存未命中或无效，调用LLM进行路线规划
             log.info("缓存未命中，调用LLM进行路径规划: tripId={}, cacheKey={}", tripId, cacheKey);
             
-            String prompt = String.format("""
-                请帮我规划一个旅行路线。以下是行程信息：
-                - 行程名称：%s
-                - 开始日期：%s
-                - 结束日期：%s
-                - 目的地：%s
-                - 行程天数：%d天
-                
-                以下是需要规划的地点列表（格式：地点名(纬度,经度)）：
-                %s
-                
-                请根据这些地点，规划合理的行程安排，将每个地点分配到合适的天数（第1天、第2天等）。
-                返回JSON格式，格式如下：
-                [
-                  {"placeId": 1, "day": 1, "sequence": 1},
-                  {"placeId": 2, "day": 1, "sequence": 2},
-                  ...
-                ]
-                
-                注意：
-                1. day从1开始，表示第几天，最大不超过%d天
-                2. sequence表示同一天内的顺序
-                3. 请合理分配，考虑地理位置和时间安排
-                4. 每个地点都必须分配到某一天
-                """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(), 
-                tripDays, placesInfo.toString(), tripDays);
+            String prompt;
+            if (existingPlanInfo.length() > 0) {
+                // 有已规划地点的情况
+                prompt = String.format("""
+                    请帮我优化一个旅行路线。以下是行程信息：
+                    - 行程名称：%s
+                    - 开始日期：%s
+                    - 结束日期：%s
+                    - 目的地：%s
+                    - 行程天数：%d天
+                    
+                    当前已规划的行程安排：
+                    %s
+                    
+                    以下是需要新增的地点列表（格式：地点名(纬度,经度)）：
+                    %s
+                    
+                    请将新增地点合理地插入到现有行程中，可以调整原有地点的天数和顺序以优化整体路线。
+                    返回完整的行程安排，包括原有地点和新增地点的JSON格式：
+                    [
+                      {"placeId": 1, "day": 1, "sequence": 1},
+                      {"placeId": 2, "day": 1, "sequence": 2},
+                      ...
+                    ]
+                    
+                    注意：
+                    1. day从1开始，表示第几天，最大不超过%d天
+                    2. sequence表示同一天内的顺序，从1开始
+                    3. 请考虑地理位置优化路线，避免过度绕路
+                    4. 每天安排的地点数量要合理，不宜过多
+                    5. 必须包含所有已规划和新增的地点
+                    6. 可以重新调整原有地点的day和sequence来优化路线
+                    """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(),
+                    tripDays, existingPlanInfo.toString(), unplannedPlacesInfo.toString(), tripDays);
+            } else {
+                // 没有已规划地点的情况（原有逻辑）
+                prompt = String.format("""
+                    请帮我规划一个旅行路线。以下是行程信息：
+                    - 行程名称：%s
+                    - 开始日期：%s
+                    - 结束日期：%s
+                    - 目的地：%s
+                    - 行程天数：%d天
+                    
+                    以下是需要规划的地点列表（格式：地点名(纬度,经度)）：
+                    %s
+                    
+                    请根据这些地点，规划合理的行程安排，将每个地点分配到合适的天数（第1天、第2天等）。
+                    返回JSON格式，格式如下：
+                    [
+                      {"placeId": 1, "day": 1, "sequence": 1},
+                      {"placeId": 2, "day": 1, "sequence": 2},
+                      ...
+                    ]
+                    
+                    注意：
+                    1. day从1开始，表示第几天，最大不超过%d天
+                    2. sequence表示同一天内的顺序
+                    3. 请合理分配，考虑地理位置和时间安排
+                    4. 每个地点都必须分配到某一天
+                    """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(),
+                    tripDays, unplannedPlacesInfo.toString(), tripDays);
+            }
 
             try {
                 String response = llmClient.chat(prompt);
@@ -701,26 +777,39 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
                 Integer day = item.path("day").asInt();
                 Integer sequence = item.path("sequence").asInt();
 
-                // 查找对应的TripPlace记录
+                // 查找对应的TripPlace记录（不限制day=0，包含所有地点）
                 TripPlace existingTp = tripPlaceMapper.selectOne(new LambdaQueryWrapper<TripPlace>()
                         .eq(TripPlace::getTripId, tripId)
-                        .eq(TripPlace::getPlaceId, placeId)
-                        .eq(TripPlace::getDay, 0));
-                
+                        .eq(TripPlace::getPlaceId, placeId));
+
                 if (existingTp != null) {
-                    // 更新TripPlace
-                    TripPlace updateTp = new TripPlace();
-                    updateTp.setId(existingTp.getId());
-                    updateTp.setDay(day);
-                    updateTp.setSequence(sequence);
-                    tripPlaceMapper.updateById(updateTp);
-                    updatedCount++;
+                    // 检查是否需要更新
+                    if (!day.equals(existingTp.getDay()) || !sequence.equals(existingTp.getSequence())) {
+                        TripPlace updateTp = new TripPlace();
+                        updateTp.setId(existingTp.getId());
+                        updateTp.setDay(day);
+                        updateTp.setSequence(sequence);
+                        tripPlaceMapper.updateById(updateTp);
+                        updatedCount++;
+                    }
+                } else {
+                    log.warn("未找到placeId={}的TripPlace记录", placeId);
                 }
             }
             
             log.info("路径规划应用完成: tripId={}, 更新了{}个地点", tripId, updatedCount);
-            return String.format("路线规划完成，共安排了%d个地点", updatedCount);
-            
+
+            // 统计结果
+            int totalUnplannedCount = unplannedPlaces.size();
+            int totalPlannedCount = plannedPlaces.size();
+
+            if (totalPlannedCount > 0) {
+                return String.format("路线规划完成，已将%d个新地点插入现有行程，同时优化了原有%d个地点的安排",
+                        totalUnplannedCount, totalPlannedCount);
+            } else {
+                return String.format("路线规划完成，共安排了%d个地点", totalUnplannedCount);
+            }
+
         } catch (Exception e) {
             log.error("应用路径规划结果失败: tripId={}", tripId, e);
             throw new LeaseException(ResultCodeEnum.FAIL.getCode(), "应用路线规划失败：" + e.getMessage());

@@ -15,12 +15,13 @@ public interface TripPlaceService extends IService<TripPlace> {
     void deletePlace(Long tripId, Long placeId, Long userId);
 
     /**
-     * 更新地点顺序
+     * 更新地点顺序（支持跨天编辑）
      * @param tripId 行程ID
+     * @param day 天数
      * @param placeIds 地点ID列表（按顺序排列）
      * @param userId 用户ID
      */
-    void updatePlaceOrder(Long tripId, List<Long> placeIds, Long userId);
+    void updatePlaceOrder(Long tripId, Integer day, List<Long> placeIds, Long userId);
 
     /**
      * 更新地点信息

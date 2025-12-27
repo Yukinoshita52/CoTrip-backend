@@ -3,10 +3,7 @@ package com.trip.web.controller;
 import com.trip.common.login.LoginUserHolder;
 import com.trip.common.result.Result;
 import com.trip.common.result.ResultCodeEnum;
-import com.trip.model.dto.InvitationCreateDTO;
-import com.trip.model.dto.PlaceBatchImportDTO;
-import com.trip.model.dto.PlaceUpdateDTO;
-import com.trip.model.dto.TripUpdateDTO;
+import com.trip.model.dto.*;
 import com.trip.model.vo.InvitationVO;
 import com.trip.model.vo.PlaceCreateVO;
 import com.trip.model.vo.TripDetailVO;
@@ -100,19 +97,19 @@ public class TripController {
     /**
      * 编辑地点顺序
      * @param tripId 行程ID
-     * @param placeIds 地点ID列表（按顺序排列）
+     * @param dto 包含天数和地点ID列表的请求体
      * @return 操作结果
      */
     @PutMapping("/places/order")
     public Result<Void> updatePlaceOrder(
             @PathVariable Long tripId,
-            @RequestBody List<Long> placeIds) {
+            @RequestBody @Validated PlaceOrderUpdateDTO dto) {
         var loginUser = LoginUserHolder.getLoginUser();
         if (loginUser == null) {
             return Result.fail(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), ResultCodeEnum.APP_LOGIN_AUTH.getMessage());
         }
-        
-        tripPlaceService.updatePlaceOrder(tripId, placeIds, loginUser.getUserId());
+
+        tripPlaceService.updatePlaceOrder(tripId, dto.getDay(), dto.getPlaceIds(), loginUser.getUserId());
         return Result.ok();
     }
 

@@ -42,13 +42,13 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
     }
 
     @Override
-    public void updatePlaceOrder(Long tripId, List<Long> placeIds, Long userId) {
+    public void updatePlaceOrder(Long tripId, Integer day, List<Long> placeIds, Long userId) {
         // 验证用户是否有编辑权限（创建者或管理员）
         if (!tripUserService.hasEditPermission(tripId, userId)) {
             throw new com.trip.common.exception.LeaseException(com.trip.common.result.ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改地点顺序");
         }
         
-        // 遍历地点ID列表，按顺序更新sequence字段
+        // 遍历地点ID列表，更新day和sequence字段
         for (int i = 0; i < placeIds.size(); i++) {
             Long placeId = placeIds.get(i);
             TripPlace tripPlace = this.getOne(new LambdaQueryWrapper<TripPlace>()
@@ -56,6 +56,8 @@ public class TripPlaceServiceImpl extends ServiceImpl<TripPlaceMapper, TripPlace
                     .eq(TripPlace::getPlaceId, placeId));
             
             if (tripPlace != null) {
+                // 更新天数和顺序
+                tripPlace.setDay(day);
                 tripPlace.setSequence(i + 1); // sequence从1开始
                 this.updateById(tripPlace);
             }
