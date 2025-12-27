@@ -483,6 +483,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         // 获取地点列表，按天数分组
         List<TripPlace> tripPlaces = tripPlaceMapper.selectList(new LambdaQueryWrapper<TripPlace>()
                 .eq(TripPlace::getTripId, tripId)
+                .eq(TripPlace::getIsDeleted, 0)
                 .orderByAsc(TripPlace::getDay)
                 .orderByAsc(TripPlace::getSequence));
 
