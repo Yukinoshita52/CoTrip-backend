@@ -141,6 +141,23 @@ CREATE TABLE post_like (
 
 ```
 
+## 收藏表(post_collect)
+
+```mysql
+-- 创建帖子收藏表
+CREATE TABLE post_collect (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '收藏ID',
+    post_id BIGINT NOT NULL COMMENT '帖子ID，对应 post.id',
+    user_id BIGINT NOT NULL COMMENT '用户ID，对应 user.id',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+    INDEX idx_user_id (user_id),
+    INDEX idx_post_id (post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子收藏表';
+```
+
+
+
 ### 账本表(book)
 
 > 注：一个行程（trip）只能对应一个账本（book），一个账本（book）由多个用户（user）共享

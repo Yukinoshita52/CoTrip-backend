@@ -14,6 +14,7 @@ import com.trip.web.service.CommunityService;
 import com.trip.web.service.PostService;
 import com.trip.web.service.PostViewService;
 import com.trip.web.service.PostLikeService;
+import com.trip.web.service.PostCollectService;
 import com.trip.web.service.TripService;
 import com.trip.web.service.UserService;
 import jakarta.annotation.Resource;
@@ -47,6 +48,8 @@ public class CommunityController {
     private PostViewService postViewService;
     @Autowired
     private PostLikeService postLikeService;
+    @Autowired
+    private PostCollectService postCollectService;
     @Autowired
     private TripService tripService;
 
@@ -263,30 +266,48 @@ public class CommunityController {
 
     // 9.1 收藏帖子
     @PostMapping("/post/{postId}/collect")
-    public Result<Void> collectPost(@PathVariable Long postId) {
+    public Result<PostCollectVO> collectPost(@PathVariable Long postId) {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
         if (loginUser == null || loginUser.getUserId() == null) {
             return Result.error("用户未登录");
         }
         
-        // TODO: 实现收藏功能
-        // 这里可以创建一个收藏表来存储用户收藏的帖子
-        return Result.ok();
+        PostCollectVO result = postCollectService.collectPost(postId, loginUser.getUserId());
+        return Result.ok(result);
     }
 
     // 9.2 取消收藏帖子
     @DeleteMapping("/post/{postId}/collect")
-    public Result<Void> uncollectPost(@PathVariable Long postId) {
+    public Result<PostCollectVO> uncollectPost(@PathVariable Long postId) {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
         if (loginUser == null || loginUser.getUserId() == null) {
             return Result.error("用户未登录");
         }
         
-        // TODO: 实现取消收藏功能
-        return Result.ok();
+        PostCollectVO result = postCollectService.uncollectPost(postId, loginUser.getUserId());
+        return Result.ok(result);
     }
 
-    // 9.3 举报帖子
+    // 9.3 检查收藏状态
+    @GetMapping("/post/{postId}/collect/status")
+    public Result<Boolean> checkCollectStatus(@PathVariable Long postId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return Result.ok(false);
+        }
+        
+        Boolean isCollected = postCollectService.isPostCollectedByUser(postId, loginUser.getUserId());
+        return Result.ok(isCollected);
+    }
+
+    // 9.4 获取帖子收藏数
+    @GetMapping("/post/{postId}/collect/count")
+    public Result<Long> getPostCollectCount(@PathVariable Long postId) {
+        Long collectCount = postCollectService.getPostCollectCount(postId);
+        return Result.ok(collectCount);
+    }
+
+    // 9.5 举报帖子
     @PostMapping("/post/{postId}/report")
     public Result<Void> reportPost(@PathVariable Long postId, @RequestBody Map<String, String> request) {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
