@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -584,6 +586,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String autoPlanRoute(Long tripId, Long userId) {
         // 验证用户是否有编辑权限（创建者或管理员）
         if (!tripUserService.hasEditPermission(tripId, userId)) {
@@ -594,10 +597,6 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         List<TripPlace> unplannedPlaces = tripPlaceMapper.selectList(new LambdaQueryWrapper<TripPlace>()
                 .eq(TripPlace::getTripId, tripId)
                 .eq(TripPlace::getDay, 0));
-
-        if (unplannedPlaces.isEmpty()) {
-            return "没有待规划的地点";
-        }
 
         // 获取所有已规划的地点（day>0）
         List<TripPlace> plannedPlaces = tripPlaceMapper.selectList(new LambdaQueryWrapper<TripPlace>()
@@ -637,7 +636,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             for (int i = 0; i < places.size(); i++) {
                 Place place = places.get(i);
                 existingPlanInfo.append(place.getName())
-                        .append("(").append(place.getLat()).append(",").append(place.getLng()).append(")");
+                        .append("(id:").append(place.getId()).append(",")
+                        .append(place.getLat()).append(",").append(place.getLng()).append(")");
                 if (i < places.size() - 1) {
                     existingPlanInfo.append(" -> ");
                 }
@@ -651,9 +651,10 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         for (TripPlace tp : unplannedPlaces) {
             Place place = placeMapper.selectById(tp.getPlaceId());
             if (place != null) {
-                unplannedPlacesInfo.append(place.getName()).append("(")
+                unplannedPlacesInfo.append(place.getName()).append("(id:")
+                        .append(place.getId()).append(",")
                         .append(place.getLat()).append(",").append(place.getLng()).append(");");
-                unplannedPlaceIds.add(place.getId());
+                 unplannedPlaceIds.add(place.getId());
             }
         }
 
@@ -677,70 +678,49 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         } else {
             // 缓存未命中或无效，调用LLM进行路线规划
             log.info("缓存未命中，调用LLM进行路径规划: tripId={}, cacheKey={}", tripId, cacheKey);
-            
-            String prompt;
-            if (existingPlanInfo.length() > 0) {
-                // 有已规划地点的情况
-                prompt = String.format("""
-                    请帮我优化一个旅行路线。以下是行程信息：
-                    - 行程名称：%s
-                    - 开始日期：%s
-                    - 结束日期：%s
-                    - 目的地：%s
-                    - 行程天数：%d天
-                    
-                    当前已规划的行程安排：
-                    %s
-                    
-                    以下是需要新增的地点列表（格式：地点名(纬度,经度)）：
-                    %s
-                    
-                    请将新增地点合理地插入到现有行程中，可以调整原有地点的天数和顺序以优化整体路线。
-                    返回完整的行程安排，包括原有地点和新增地点的JSON格式：
-                    [
-                      {"placeId": 1, "day": 1, "sequence": 1},
-                      {"placeId": 2, "day": 1, "sequence": 2},
-                      ...
-                    ]
-                    
-                    注意：
-                    1. day从1开始，表示第几天，最大不超过%d天
-                    2. sequence表示同一天内的顺序，从1开始
-                    3. 请考虑地理位置优化路线，避免过度绕路
-                    4. 每天安排的地点数量要合理，不宜过多
-                    5. 必须包含所有已规划和新增的地点
-                    6. 可以重新调整原有地点的day和sequence来优化路线
-                    """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(),
-                    tripDays, existingPlanInfo.toString(), unplannedPlacesInfo.toString(), tripDays);
-            } else {
-                // 没有已规划地点的情况（原有逻辑）
-                prompt = String.format("""
-                    请帮我规划一个旅行路线。以下是行程信息：
-                    - 行程名称：%s
-                    - 开始日期：%s
-                    - 结束日期：%s
-                    - 目的地：%s
-                    - 行程天数：%d天
-                    
-                    以下是需要规划的地点列表（格式：地点名(纬度,经度)）：
-                    %s
-                    
-                    请根据这些地点，规划合理的行程安排，将每个地点分配到合适的天数（第1天、第2天等）。
-                    返回JSON格式，格式如下：
-                    [
-                      {"placeId": 1, "day": 1, "sequence": 1},
-                      {"placeId": 2, "day": 1, "sequence": 2},
-                      ...
-                    ]
-                    
-                    注意：
-                    1. day从1开始，表示第几天，最大不超过%d天
-                    2. sequence表示同一天内的顺序
-                    3. 请合理分配，考虑地理位置和时间安排
-                    4. 每个地点都必须分配到某一天
-                    """, trip.getName(), trip.getStartDate(), trip.getEndDate(), trip.getRegion(),
-                    tripDays, unplannedPlacesInfo.toString(), tripDays);
-            }
+
+            String prompt = String.format("""
+                你是一个旅行路线规划助手，请根据以下信息，规划或优化完整的旅行行程。
+                
+                【行程信息】
+                - 行程名称：%s
+                - 开始日期：%s
+                - 结束日期：%s
+                - 目的地：%s
+                - 行程天数：%d 天
+                
+                【当前已规划行程】
+                （如果为空，表示尚未规划）
+                %s
+                
+                【需要规划或新增的地点列表】
+                （格式：地点名(id:placeId,纬度,经度)）
+                %s
+                
+                【任务要求】
+                1. 请输出【完整的行程安排】，必须包含所有地点（已规划 + 新增）
+                2. 你可以调整原有地点的 day 和 sequence 以优化整体路线
+                3. day 从 1 开始，最大不超过 %d
+                4. sequence 表示同一天内的访问顺序，从 1 开始，且同一天不能重复
+                5. 请基于地理位置优化路线，避免过度绕路
+                6. 每天安排的地点数量要合理
+                
+                【返回格式】
+                只返回 JSON 数组，不要任何解释性文字：
+                [
+                  {"placeId": 1, "day": 1, "sequence": 1},
+                  {"placeId": 2, "day": 1, "sequence": 2}
+                ]
+                """,
+                    trip.getName(),
+                    trip.getStartDate(),
+                    trip.getEndDate(),
+                    trip.getRegion(),
+                    tripDays,
+                    !existingPlanInfo.isEmpty() ? existingPlanInfo : "无",
+                    unplannedPlacesInfo,
+                    tripDays
+            );
 
             try {
                 String response = llmClient.chat(prompt);
@@ -770,6 +750,33 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         // 应用路径规划结果
         try {
             JsonNode node = new ObjectMapper().readTree(routePlanJson);
+            // 记录 LLM 返回的 JSON 结果
+            log.info("LLM route plan result: {}", routePlanJson);
+
+            // 校验 LLM 返回的 day/sequence 唯一性
+            Set<String> used = new HashSet<>();
+            for (JsonNode item : node) {
+                String key = item.path("day").asInt() + "-" + item.path("sequence").asInt();
+                if (!used.add(key)) {
+                    throw new LeaseException(ResultCodeEnum.FAIL.getCode(),
+                            "LLM 返回重复的 day/sequence: " + key);
+                }
+            }
+
+            // 校验 LLM 返回是否包含所有预期的地点
+            Set<Long> expectedPlaceIds = new HashSet<>(allPlaceIds);
+            Set<Long> returnedPlaceIds = new HashSet<>();
+            for (JsonNode item : node) {
+                returnedPlaceIds.add(item.path("placeId").asLong());
+            }
+            if (!returnedPlaceIds.containsAll(expectedPlaceIds)) {
+                expectedPlaceIds.removeAll(returnedPlaceIds);
+                throw new LeaseException(
+                        ResultCodeEnum.FAIL.getCode(),
+                        "LLM 返回缺少地点: " + expectedPlaceIds
+                );
+            }
+
             int updatedCount = 0;
             
             for (JsonNode item : node) {
@@ -835,7 +842,3 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         return response.trim();
     }
 }
-
-
-
-
