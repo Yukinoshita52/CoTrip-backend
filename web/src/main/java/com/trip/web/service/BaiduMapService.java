@@ -1,6 +1,7 @@
 package com.trip.web.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trip.common.exception.LeaseException;
 import com.trip.common.result.ResultCodeEnum;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class BaiduMapService {
     private String baiduAk;
 
     private final WebClient baiduWebClient;
+    private final ObjectMapper objectMapper;
 
     /**
      * 地点输入提示
@@ -88,14 +90,20 @@ public class BaiduMapService {
                         .queryParam("ak", baiduAk)
                         .build())
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .flatMap(json -> {
-                    if (json == null || json.path("status").asInt() != 0) {
-                        log.warn("百度驾车路线规划API调用失败: origin={}, destination={}, reason={}", 
-                            origin, destination, json != null ? json.path("message").asText() : "返回为空");
-                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度驾车路线规划API调用失败"));
+                .bodyToMono(String.class)
+                .flatMap(responseBody -> {
+                    try {
+                        JsonNode json = objectMapper.readTree(responseBody);
+                        if (json == null || json.path("status").asInt() != 0) {
+                            log.warn("百度驾车路线规划API调用失败: origin={}, destination={}, reason={}", 
+                                origin, destination, json != null ? json.path("message").asText() : "返回为空");
+                            return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度驾车路线规划API调用失败"));
+                        }
+                        return Mono.just(json.path("result"));
+                    } catch (Exception e) {
+                        log.error("解析百度驾车路线规划API响应失败: origin={}, destination={}", origin, destination, e);
+                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "解析百度驾车路线规划API响应失败"));
                     }
-                    return Mono.just(json.path("result"));
                 });
     }
 
@@ -120,14 +128,20 @@ public class BaiduMapService {
                         .queryParam("ak", baiduAk)
                         .build())
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .flatMap(json -> {
-                    if (json == null || json.path("status").asInt() != 0) {
-                        log.warn("百度公交路线规划API调用失败: origin={}, destination={}, reason={}", 
-                            origin, destination, json != null ? json.path("message").asText() : "返回为空");
-                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度公交路线规划API调用失败"));
+                .bodyToMono(String.class)
+                .flatMap(responseBody -> {
+                    try {
+                        JsonNode json = objectMapper.readTree(responseBody);
+                        if (json == null || json.path("status").asInt() != 0) {
+                            log.warn("百度公交路线规划API调用失败: origin={}, destination={}, reason={}", 
+                                origin, destination, json != null ? json.path("message").asText() : "返回为空");
+                            return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度公交路线规划API调用失败"));
+                        }
+                        return Mono.just(json.path("result"));
+                    } catch (Exception e) {
+                        log.error("解析百度公交路线规划API响应失败: origin={}, destination={}", origin, destination, e);
+                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "解析百度公交路线规划API响应失败"));
                     }
-                    return Mono.just(json.path("result"));
                 });
     }
 
@@ -152,14 +166,20 @@ public class BaiduMapService {
                         .queryParam("ak", baiduAk)
                         .build())
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .flatMap(json -> {
-                    if (json == null || json.path("status").asInt() != 0) {
-                        log.warn("百度步行路线规划API调用失败: origin={}, destination={}, reason={}", 
-                            origin, destination, json != null ? json.path("message").asText() : "返回为空");
-                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度步行路线规划API调用失败"));
+                .bodyToMono(String.class)
+                .flatMap(responseBody -> {
+                    try {
+                        JsonNode json = objectMapper.readTree(responseBody);
+                        if (json == null || json.path("status").asInt() != 0) {
+                            log.warn("百度步行路线规划API调用失败: origin={}, destination={}, reason={}", 
+                                origin, destination, json != null ? json.path("message").asText() : "返回为空");
+                            return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "百度步行路线规划API调用失败"));
+                        }
+                        return Mono.just(json.path("result"));
+                    } catch (Exception e) {
+                        log.error("解析百度步行路线规划API响应失败: origin={}, destination={}", origin, destination, e);
+                        return Mono.error(new LeaseException(ResultCodeEnum.FAIL.getCode(), "解析百度步行路线规划API响应失败"));
                     }
-                    return Mono.just(json.path("result"));
                 });
     }
 }
