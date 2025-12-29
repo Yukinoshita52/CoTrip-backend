@@ -20,13 +20,7 @@ import com.trip.model.vo.TripMemberVO;
 import com.trip.model.vo.TripVO;
 import com.trip.web.config.LLMClient;
 import com.trip.web.mapper.*;
-import com.trip.web.service.GraphInfoService;
-import com.trip.web.service.LLMCacheService;
-import com.trip.web.service.PlaceTypeService;
-import com.trip.web.service.RoutePlanCacheService;
-import com.trip.web.service.TripService;
-import com.trip.web.service.TripUserService;
-import com.trip.web.service.UserService;
+import com.trip.web.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -64,6 +58,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
     private final GraphInfoService graphInfoService;
     private final RoutePlanCacheService routePlanCacheService;
     private final LLMCacheService llmCacheService;
+    private final TripCacheService tripCacheService; // 添加行程缓存服务
     
     // 添加必要的Mapper依赖
     private final BookMapper bookMapper;
@@ -88,6 +83,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
         // 将创建者添加到行程用户关联表
         tripUserService.addCreator(trip.getId(), creatorId);
+
+        // 清除创建者的行程缓存
+        tripCacheService.evictUserTrips(creatorId);
 
         // 转换为VO返回
         TripVO vo = new TripVO();
@@ -221,6 +219,13 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权删除此行程");
         }
 
+        // 获取行程相关的所有用户ID，用于清除缓存
+        List<TripUser> allTripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId));
+        List<Long> userIds = allTripUsers.stream()
+                .map(TripUser::getUserId)
+                .collect(Collectors.toList());
+
         // 1. 先删除账本相关数据（按依赖关系顺序）
         // 1.1 删除账本记录
         List<Book> tripBooks = bookMapper.selectList(new LambdaQueryWrapper<Book>()
@@ -313,6 +318,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             throw new LeaseException(ResultCodeEnum.DATA_ERROR.getCode(), "行程不存在");
         }
         this.removeById(tripId);
+
+        // 清除相关用户的行程缓存
+        tripCacheService.evictTripRelatedCache(tripId, userIds);
     }
 
     @Override
@@ -321,6 +329,14 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
         if (!tripUserService.hasEditPermission(tripId, userId)) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_AUTH.getCode(), "无权修改此行程");
         }
+
+        // 获取行程相关的所有用户ID，用于清除缓存
+        List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getIsDeleted, 0));
+        List<Long> userIds = tripUsers.stream()
+                .map(TripUser::getUserId)
+                .collect(Collectors.toList());
 
         // 更新行程信息
         Trip trip = this.getById(tripId);
@@ -357,6 +373,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
         this.updateById(trip);
 
+        // 清除相关用户的行程缓存
+        tripCacheService.evictTripRelatedCache(tripId, userIds);
+
         // 转换为VO返回
         TripVO vo = new TripVO();
         vo.setTripId(trip.getId());
@@ -373,6 +392,15 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
 
     @Override
     public List<TripVO> getUserTrips(Long userId) {
+        // 先尝试从缓存获取
+        List<TripVO> cachedTrips = tripCacheService.getUserTrips(userId);
+        if (cachedTrips != null) {
+            return cachedTrips;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("用户行程缓存未命中，从数据库查询: userId={}", userId);
+        
         // 查询用户关联的所有有效行程（排除已删除的关联关系）
         List<TripUser> tripUsers = tripUserService.list(new LambdaQueryWrapper<TripUser>()
                 .eq(TripUser::getUserId, userId)
@@ -450,6 +478,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip>
             }
         }
 
+        // 缓存查询结果
+        tripCacheService.cacheUserTrips(userId, tripVOList);
+        
         return tripVOList;
     }
 

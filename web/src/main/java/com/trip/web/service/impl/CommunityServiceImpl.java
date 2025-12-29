@@ -10,8 +10,7 @@ import com.trip.model.entity.*;
 import com.trip.model.vo.*;
 import com.trip.web.mapper.TripUserMapper;
 import com.trip.web.mapper.*;
-import com.trip.web.service.CommunityService;
-import com.trip.web.service.PostViewService;
+import com.trip.web.service.*;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +56,14 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
     private final CommunityMapper communityMapper;
     @Resource
     private final PostViewService postViewService;
+    @Resource
+    private final CommunityFeedCacheService communityFeedCacheService; // 添加社区缓存服务
+    @Resource
+    private final PostDetailCacheService postDetailCacheService; // 添加帖子详情缓存服务
+    @Resource
+    private final UserProfileCacheService userProfileCacheService; // 添加用户资料缓存服务
+    @Resource
+    private final SearchCacheService searchCacheService; // 添加搜索缓存服务
 
     /**
      * 1.首先对post表是分页查询数据的，查询到一系列的id as post_id。
@@ -73,6 +80,14 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
      */
     @Override
     public FeedPageVO getFeed(Integer page, Integer size) {
+        // 先尝试从缓存获取
+        FeedPageVO cachedFeed = communityFeedCacheService.getFeed(page, size);
+        if (cachedFeed != null) {
+            return cachedFeed;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("社区动态缓存未命中，从数据库查询: page={}, size={}", page, size);
 
         Page<Post> mpPage = new Page<>(page, size);
 
@@ -219,11 +234,23 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         result.setTotal(postPage.getTotal());
         result.setList(list);
 
+        // 缓存查询结果
+        communityFeedCacheService.cacheFeed(page, size, result);
+
         return result;
     }
 
     @Override
     public PostDetailVO getPostDetail(Long postId) {
+        // 先尝试从缓存获取
+        PostDetailVO cachedDetail = postDetailCacheService.getPostDetail(postId);
+        if (cachedDetail != null) {
+            return cachedDetail;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("帖子详情缓存未命中，从数据库查询: postId={}", postId);
+
         //数据查询
         Post post = postMapper.selectById(postId);
         if(post == null){
@@ -252,6 +279,9 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         vo.setStats(stats);
         vo.setCreateTime(post.getCreateTime());
 
+        // 缓存查询结果
+        postDetailCacheService.cachePostDetail(postId, vo);
+
         return vo;
     }
 
@@ -268,11 +298,16 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
             return null;
         }
 
-
         Post post = new Post();
         post.setUserId(userId);
         post.setTripId(dto.getTripId());
         postMapper.insert(post);
+
+        // 清除社区动态缓存，因为有新帖子
+        communityFeedCacheService.evictFeedOnPostChange();
+        
+        // 清除搜索缓存，因为有新帖子
+        searchCacheService.evictSearchCacheOnDataChange();
 
         PostCreatedVO res = new PostCreatedVO();
         res.setPostId(post.getId());
@@ -283,6 +318,15 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
 
     @Override
     public UserProfileVO getUserProfile(Long userId) {
+        // 先尝试从缓存获取
+        UserProfileVO cachedProfile = userProfileCacheService.getUserProfile(userId);
+        if (cachedProfile != null) {
+            return cachedProfile;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("用户资料缓存未命中，从数据库查询: userId={}", userId);
+
         AuthorVO authorVO = userMapper.getAuthorVoByUserId(userId);
         UserPostsStatsVO stats = userMapper.getUserPostStatsByUserId(userId);
         List<UserPostVO> posts = userMapper.getUserPostsByUserId(userId);
@@ -294,26 +338,56 @@ public class CommunityServiceImpl extends ServiceImpl<PostMapper, Post> implemen
         res.setAvatar(authorVO.getAvatar());
         res.setStats(stats);
         res.setPosts(posts);
+
+        // 缓存查询结果
+        userProfileCacheService.cacheUserProfile(userId, res);
+
         return res;
     }
 
     @Override
     public SearchPostVO searchMatchPosts(String keyword) {
+        // 先尝试从缓存获取
+        SearchPostVO cachedResult = searchCacheService.getPostSearchResult(keyword);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("帖子搜索缓存未命中，从数据库查询: keyword={}", keyword);
+
         List<SearchPostVO.SearchItemVO> items = communityMapper.getPostsByKeyWord(keyword);
 
         SearchPostVO res = new SearchPostVO();
         res.setResults(items);
         res.setKeyword(keyword);
+
+        // 缓存查询结果
+        searchCacheService.cachePostSearchResult(keyword, res);
+
         return res;
     }
 
     @Override
     public SearchUserVO searchAuthorByKeyword(String keyword) {
+        // 先尝试从缓存获取
+        SearchUserVO cachedResult = searchCacheService.getUserSearchResult(keyword);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        // 缓存未命中，从数据库查询
+        log.info("用户搜索缓存未命中，从数据库查询: keyword={}", keyword);
+
         List<AuthorVO> users = userMapper.getAuthorVoByKeyword(keyword);
 
         SearchUserVO res = new SearchUserVO();
         res.setKeyword(keyword);
         res.setUsers(users);
+
+        // 缓存查询结果
+        searchCacheService.cacheUserSearchResult(keyword, res);
+
         return res;
     }
 

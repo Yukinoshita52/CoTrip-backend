@@ -7,9 +7,13 @@ import com.trip.common.result.ResultCodeEnum;
 import com.trip.model.entity.TripUser;
 import com.trip.web.mapper.TripUserMapper;
 import com.trip.web.service.AccountService;
+import com.trip.web.service.TripCacheService;
 import com.trip.web.service.TripUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author 26423
@@ -22,6 +26,7 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         implements TripUserService {
         
     private final AccountService accountService;
+    private final TripCacheService tripCacheService;
 
     @Override
     public void addCreator(Long tripId, Long userId) {
@@ -73,6 +78,15 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         System.out.println("addParticipant: 开始为用户 " + userId + " 添加账本权限");
         accountService.addMemberToTripBooks(tripId, userId);
         System.out.println("addParticipant: 完成为用户 " + userId + " 添加账本权限");
+
+        // 清除相关用户的行程缓存
+        List<TripUser> allTripUsers = this.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getIsDeleted, 0));
+        List<Long> userIds = allTripUsers.stream()
+                .map(TripUser::getUserId)
+                .collect(Collectors.toList());
+        tripCacheService.evictTripRelatedCache(tripId, userIds);
     }
 
     @Override
@@ -108,6 +122,17 @@ public class TripUserServiceImpl extends ServiceImpl<TripUserMapper, TripUser>
         // 从该行程的所有账本中移除用户
         accountService.removeMemberFromTripBooks(tripId, userId);
         System.out.println("removeParticipant: 已将用户 " + userId + " 从行程 " + tripId + " 的账本中移除");
+
+        // 清除相关用户的行程缓存
+        List<TripUser> allTripUsers = this.list(new LambdaQueryWrapper<TripUser>()
+                .eq(TripUser::getTripId, tripId)
+                .eq(TripUser::getIsDeleted, 0));
+        List<Long> userIds = allTripUsers.stream()
+                .map(TripUser::getUserId)
+                .collect(Collectors.toList());
+        // 也要清除退出用户的缓存
+        userIds.add(userId);
+        tripCacheService.evictTripRelatedCache(tripId, userIds);
     }
 
     @Override
