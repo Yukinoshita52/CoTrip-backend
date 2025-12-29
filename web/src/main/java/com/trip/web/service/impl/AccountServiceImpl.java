@@ -220,6 +220,15 @@ public class AccountServiceImpl implements AccountService {
             System.out.println("记录 " + (i + 1) + ": recordId=" + record.getRecordId() + 
                 ", note='" + record.getNote() + "', amount=" + record.getAmount() + 
                 ", categoryName=" + record.getCategoryName());
+            
+            // 调试用户头像信息
+            if (record.getUser() != null) {
+                System.out.println("  用户信息: userId=" + record.getUser().getUserId() + 
+                    ", nickname=" + record.getUser().getNickname() + 
+                    ", avatar=" + record.getUser().getAvatar());
+            } else {
+                System.out.println("  用户信息: null");
+            }
         }
         
         // 获取总记录数

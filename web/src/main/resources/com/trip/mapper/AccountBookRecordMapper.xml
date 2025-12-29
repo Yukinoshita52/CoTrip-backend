@@ -38,10 +38,12 @@
                COALESCE(abc.icon_id, 1) as iconId,
 
                user.id as userId,
-               user.nickname
+               user.nickname,
+               COALESCE(gi.url, '') as avatar
         from account_book_record abr
                  left join account_book_category abc on abr.category_id = abc.id and abc.is_deleted = 0
                  join user on user.id = abr.user_id
+                 left join graph_info gi on gi.item_type = 1 and gi.item_id = user.id and gi.is_deleted = 0
         where abr.book_id = #{bookId} and abr.is_deleted = 0 and user.is_deleted = 0
         limit #{offset},#{size}
     </select>
@@ -62,10 +64,12 @@
                abr.remark  as note,
                abr.record_time,
                user.id     as userId,
-               user.nickname
+               user.nickname,
+               COALESCE(gi.url, '') as avatar
         from account_book_record abr
                  left join account_book_category abc on abr.category_id = abc.id and abc.is_deleted = 0
                  join user on abr.user_id = user.id
+                 left join graph_info gi on gi.item_type = 1 and gi.item_id = user.id and gi.is_deleted = 0
         where abr.id = #{recordId}
           and abr.is_deleted = 0
           and user.is_deleted = 0

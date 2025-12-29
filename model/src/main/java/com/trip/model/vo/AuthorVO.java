@@ -21,4 +21,7 @@ public class AuthorVO {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String avatar;
+    
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String avatarUrl;
 }
