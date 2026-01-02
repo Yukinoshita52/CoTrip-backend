@@ -32,3 +32,5 @@ replay_pid*
 .idea/
 **/application.yml
 /.vscode/settings.json
+/web/src/main/resources/application-dev.yml
+/web/src/main/resources/application-prod.yml
