@@ -362,7 +362,7 @@ public class AccountServiceImpl implements AccountService {
         // 3. 计算每人应该承担的金额
         BigDecimal perPersonAmount = totalExpense.divide(new BigDecimal(totalMembers), 2, RoundingMode.HALF_UP);
         
-        // 4. 计算当前用户实际支付的金额
+        // 4. 计算当前用户的净余额
         BigDecimal currentUserPaid = BigDecimal.ZERO;
         for (MemberPayDTO memberPay : memberPays) {
             if (memberPay.getUserId().equals(userId) && memberPay.getExpense() != null) {
@@ -370,6 +370,7 @@ public class AccountServiceImpl implements AccountService {
                 break;
             }
         }
+        BigDecimal currentUserBalance = currentUserPaid.subtract(perPersonAmount);
         
         // 5. 计算分摊结果
         List<PayMemberVO> result = new ArrayList<>();
@@ -386,20 +387,28 @@ public class AccountServiceImpl implements AccountService {
             // 计算该成员实际支付的金额
             BigDecimal memberPaid = memberPay.getExpense() != null ? memberPay.getExpense() : BigDecimal.ZERO;
             
-            // 最简单直接的逻辑：
-            // 每个人都应该承担 perPersonAmount
-            // 如果该成员支付不足，当前用户需要补贴给该成员
-            // 如果该成员支付过多，该成员需要从当前用户那里收回
+            // 该成员的净余额：实际支付 - 应该承担
+            BigDecimal memberBalance = memberPaid.subtract(perPersonAmount);
             
-            BigDecimal memberShouldPay = perPersonAmount;
-            BigDecimal memberActuallyPaid = memberPaid;
-            BigDecimal memberDeficit = memberShouldPay.subtract(memberActuallyPaid);
+            // 计算该成员与当前用户之间的结算金额
+            // 核心逻辑：
+            // - 如果当前用户余额为正（多付了），其他成员余额为负（少付了）
+            //   则其他成员应该付给当前用户：min(当前用户多付的金额, 其他成员少付的金额)
+            // - 如果当前用户余额为负（少付了），其他成员余额为正（多付了）
+            //   则当前用户应该付给其他成员：min(当前用户少付的金额, 其他成员多付的金额)
             
-            // 该成员应该付给当前用户的金额就是该成员的不足部分
-            // 如果为正数，表示该成员欠当前用户钱
-            // 如果为负数，表示当前用户欠该成员钱
-            payMemberVO.setShouldPay(memberDeficit);
+            BigDecimal shouldPay = BigDecimal.ZERO;
             
+            if (currentUserBalance.compareTo(BigDecimal.ZERO) > 0 && memberBalance.compareTo(BigDecimal.ZERO) < 0) {
+                // 当前用户多付了，该成员少付了 -> 该成员应该付给当前用户
+                shouldPay = memberBalance.negate(); // 该成员少付的金额（取绝对值）
+            } else if (currentUserBalance.compareTo(BigDecimal.ZERO) < 0 && memberBalance.compareTo(BigDecimal.ZERO) > 0) {
+                // 当前用户少付了，该成员多付了 -> 当前用户应该付给该成员（显示为负数）
+                shouldPay = currentUserBalance; // 当前用户少付的金额（负数）
+            }
+            // 如果两人都多付或都少付，则不需要相互结算
+            
+            payMemberVO.setShouldPay(shouldPay);
             result.add(payMemberVO);
         }
         
